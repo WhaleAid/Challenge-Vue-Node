@@ -26,9 +26,15 @@ const getAll = async (req, res, next) => {
 }
 
 const createOne = async (req, res, next) => {
-    const { name, date_of_birth } = req.body
+    const { name,email, password, passwordConfirm , date_of_birth } = req.body
     try {
-        const user = await User.create({ name: name, date_of_birth: date_of_birth })
+        const user = await User.create({
+                name: name,
+                date_of_birth: date_of_birth,
+                email : email,
+                password : password,
+                passwordConfirm : passwordConfirm 
+            });
         await user.save()
         res.json({ user })
     } catch (error) {
