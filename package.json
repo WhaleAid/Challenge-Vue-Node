@@ -4,7 +4,7 @@
   "description": "project for unit testing - bank accounts",
   "main": "index.js",
   "scripts": {
-    "test": "jest run test",
+    "test": "npx jest",
     "dev": "nodemon ./bin/www"
   },
   "author": "Whale 🐳",
@@ -25,5 +25,8 @@
     "nodemon": "^2.0.22",
     "socket.io": "^4.6.2",
     "socket.io-adapter-mongoose": "^0.5.1"
+  },
+  "devDependencies": {
+    "jest": "^29.6.1"
   }
 }
