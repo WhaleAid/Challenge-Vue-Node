@@ -17,7 +17,7 @@ let userSchema = new Schema({
         lowercase : true,
         validate : {
             validator : validator.isEmail,
-            message : 'Please enter a valid elail'
+            message : 'Please enter a valid email'
         } 
      },
      password : {
@@ -47,6 +47,33 @@ let userSchema = new Schema({
     },
 });
 
+
+userSchema.pre('save', async function(next){
+    //only runs if the password is modified
+    if(!this.isModified('password')){
+        return next();
+    }
+    this.password = await bcrypt.hash(this.password,12);
+
+    this.passwordConfirm = undefined; // we actually don't need to store this field, we only use it to verify if the passwords are the same
+    next();
+});
+
+// userSchema.methods.correctPassword = async function(candidatePassword,userPassword){
+//     return await bcrypt.compare(candidatePassword,userPassword);
+// };
+
+
+// userSchema.methods.changedPasswordAfter = function(JWTTimespamt){
+//     if(this.passwordChangedAt){
+//         const changedTimeStamp = parseInt(this.passwordChangedAt.getTime()/1000,10);
+//         console.log("the two timestamps",changedTimeStamp,JWTTimespamt);
+       
+//         return JWTTimespamt < changedTimeStamp;
+//     }
+    
+//     return false;
+// };
 
 
 module.exports = mongoose.model("User", userSchema);

@@ -35,7 +35,7 @@ const createOne = async (req, res, next) => {
                 password : password,
                 passwordConfirm : passwordConfirm 
             });
-        await user.save()
+        // await user.save()
         res.json({ user })
     } catch (error) {
         console.log(error)
@@ -47,6 +47,9 @@ const deleteOne = async (req, res, next) => {
     const { id } = req.params
     try {
         const user = await User.findByIdAndDelete(id)
+
+        // ici ne pas renvoyer le user supprimé. renvoyer uniquement un message de sucess      
+        
         res.json({ user })
     } catch (error) {
         console.log(error)
