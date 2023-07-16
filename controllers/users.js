@@ -7,8 +7,18 @@ const { User } = require('../models')
 const getOne = async (req, res, next) => {
     const { id } = req.params
     try {
-        const user = await User.findById(id)
-        res.json({ user })
+        const user = await User.findById(id);
+
+        if(!user) {
+            return next(createError(404));
+        }
+
+        res.status(200).json({ 
+            status : "success",
+            data : {
+                user : user
+            }   
+         });
     } catch (error) {
         console.log(error)
         return next(createError(500))
@@ -17,8 +27,17 @@ const getOne = async (req, res, next) => {
 
 const getAll = async (req, res, next) => {
     try {
-        const users = await User.find()
-        res.json({ users })
+        const users = await User.find();
+
+        res.status(200).json({ 
+            
+            status : 'success',
+            count : users.length,
+            data : {
+                users : users 
+            } 
+        });
+        
     } catch (error) {
         console.log(error)
         return next(createError(500))
@@ -36,9 +55,31 @@ const createOne = async (req, res, next) => {
                 passwordConfirm : passwordConfirm 
             });
         // await user.save()
-        res.json({ user })
+        res.status(201).json({ 
+            status : "success",
+            data : {
+                user : user
+            }
+         })
     } catch (error) {
-        console.log(error)
+        console.log("Error Type : ", error.name)
+        if (error.name === 'ValidationError') {
+            // Erreur de validation Mongoose
+            const validationErrors = {};
+      
+            // Personnaliser les messages d'erreur
+            for (const field in error.errors) {
+              const errorMessage = error.errors[field].message;
+              validationErrors[field] = errorMessage;
+            }
+
+            return res.status(400).json({ 
+                status : "fail",
+                message : {
+                    errors: validationErrors 
+                } 
+            });
+        }
         return next(createError(500))
     }
 }
@@ -46,11 +87,19 @@ const createOne = async (req, res, next) => {
 const deleteOne = async (req, res, next) => {
     const { id } = req.params
     try {
-        const user = await User.findByIdAndDelete(id)
+        const deletedUser = await User.findByIdAndDelete(id)
 
-        // ici ne pas renvoyer le user supprimé. renvoyer uniquement un message de sucess      
+        if (!deletedUser) {
+            return res.status(404).json({ 
+                status : "fail",
+                message: 'user not found' 
+            });
+        }    
         
-        res.json({ user })
+        res.status(200).json({ 
+            status : "success",
+            message : 'user deleted successfully'
+         })
     } catch (error) {
         console.log(error)
         return next(createError(500))
@@ -59,12 +108,43 @@ const deleteOne = async (req, res, next) => {
 
 const updateOne = async (req, res, next) => {
     const { id } = req.params
-    const { name } = req.body
+    //const { name } = req.body
+
+    const { name,email, password, passwordConfirm , date_of_birth } = req.body
     try {
-        const user = await User.updateOne({ _id: id }, { name: name })
-        res.json({ user })
+
+        //user with the id "id" does not existe then we create it
+        const user = await User.findByIdAndUpdate(req.params.id , req.body , {
+            new : true,
+            runValidators : true
+        } );
+        
+        return res.status(201).json({
+            status : "success",
+            data : {
+                user : user
+            }
+        })
+
     } catch (error) {
-        console.log(error)
+        console.log("Error Type : ", error.name)
+        if (error.name === 'ValidationError') {
+            // Erreur de validation Mongoose
+            const validationErrors = {};
+      
+            // Personnaliser les messages d'erreur
+            for (const field in error.errors) {
+              const errorMessage = error.errors[field].message;
+              validationErrors[field] = errorMessage;
+            }
+
+            return res.status(400).json({ 
+                status : "fail",
+                message : {
+                    errors: validationErrors 
+                }
+            });
+        }
         return next(createError(500))
     }
 }
