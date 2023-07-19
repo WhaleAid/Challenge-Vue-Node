@@ -2,6 +2,9 @@ const express = require('express')
 const createError = require('http-errors')
 const mongoose = require('mongoose')
 
+const pool = require('./../dbPostgres');
+
+const authController = require('./authController');
 const { User } = require('../models')
 
 const getOne = async (req, res, next) => {
@@ -26,7 +29,21 @@ const getOne = async (req, res, next) => {
 }
 
 const getAll = async (req, res, next) => {
+
     try {
+
+        //postgres test
+        
+        pool.query("SELECT * FROM \"user\"", (error, results)=>{
+            if(error){
+                throw error;
+            }
+            postgres = results.rows;
+            //console.log("postgres user : ", results.rows);
+
+        })
+
+        //console.log("getAll users endpoint");
         const users = await User.find();
 
         res.status(200).json({ 
@@ -34,8 +51,13 @@ const getAll = async (req, res, next) => {
             status : 'success',
             count : users.length,
             data : {
-                users : users 
-            } 
+                users : users,
+
+                
+            },
+            // dataPostres : {
+            //     postgres : postgres
+            // }
         });
         
     } catch (error) {
@@ -45,14 +67,16 @@ const getAll = async (req, res, next) => {
 }
 
 const createOne = async (req, res, next) => {
-    const { name,email, password, passwordConfirm , date_of_birth } = req.body
+    const { firstName,lastName,email, password, passwordConfirm , date_of_birth, role } = req.body
     try {
         const user = await User.create({
-                name: name,
+                firstName: firstName,
+                lastName: lastName,
                 date_of_birth: date_of_birth,
                 email : email,
                 password : password,
-                passwordConfirm : passwordConfirm 
+                passwordConfirm : passwordConfirm,
+                role : role
             });
         // await user.save()
         res.status(201).json({ 
@@ -80,7 +104,7 @@ const createOne = async (req, res, next) => {
                 } 
             });
         }
-        return next(createError(500))
+        return next(createError(500, `somthing went wrong ${error}`));
     }
 }
 
@@ -149,12 +173,39 @@ const updateOne = async (req, res, next) => {
     }
 }
 
+
+const signup = async(req,res,next)=>{
+
+    try{
+        console.log("signup endpoint");
+        
+
+        
+    }
+    catch(error){
+        res.status(500).json({
+            status : 'fail',
+            message : 'Server internal error !',
+            error : error
+        })
+    }
+}
+
 let router = express.Router()
 
 router.get('/:id', getOne)
 router.post('/', createOne)
-router.get('/', getAll)
-router.delete('/:id', deleteOne)
+router.get('/',authController.protect, authController.restrictTo('admin'),getAll)
+router.delete('/:id',authController.protect, authController.restrictTo( 'admin'), deleteOne)
 router.put('/:id', updateOne)
+
+router.post("/signup", authController.signup);
+router.post("/login", authController.login);
+
+router.post("/forgotPassword", authController.forgotPassword);
+router.patch("/resetPassword/:token", authController.resetPassword);
+
+router.patch("/updateMyPassword", authController.protect, authController.updatePassword);
+
 
 module.exports = router
