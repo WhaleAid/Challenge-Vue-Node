@@ -2,13 +2,26 @@ const express = require('express')
 const createError = require('http-errors')
 const mongoose = require('mongoose')
 
+const pool = require('./../dbPostgres');
+
+const authController = require('./authController');
 const { User } = require('../models')
 
 const getOne = async (req, res, next) => {
     const { id } = req.params
     try {
-        const user = await User.findById(id)
-        res.json({ user })
+        const user = await User.findById(id);
+
+        if(!user) {
+            return next(createError(404));
+        }
+
+        res.status(200).json({ 
+            status : "success",
+            data : {
+                user : user
+            }   
+         });
     } catch (error) {
         console.log(error)
         return next(createError(500))
@@ -16,9 +29,37 @@ const getOne = async (req, res, next) => {
 }
 
 const getAll = async (req, res, next) => {
+
     try {
-        const users = await User.find()
-        res.json({ users })
+
+        //postgres test
+        
+        pool.query("SELECT * FROM \"user\"", (error, results)=>{
+            if(error){
+                throw error;
+            }
+            postgres = results.rows;
+            //console.log("postgres user : ", results.rows);
+
+        })
+
+        //console.log("getAll users endpoint");
+        const users = await User.find();
+
+        res.status(200).json({ 
+            
+            status : 'success',
+            count : users.length,
+            data : {
+                users : users,
+
+                
+            },
+            // dataPostres : {
+            //     postgres : postgres
+            // }
+        });
+        
     } catch (error) {
         console.log(error)
         return next(createError(500))
@@ -26,22 +67,63 @@ const getAll = async (req, res, next) => {
 }
 
 const createOne = async (req, res, next) => {
-    const { name, date_of_birth } = req.body
+    const { firstName,lastName,email, password, passwordConfirm , date_of_birth, role } = req.body
     try {
-        const user = await User.create({ name: name, date_of_birth: date_of_birth })
-        await user.save()
-        res.json({ user })
+        const user = await User.create({
+                firstName: firstName,
+                lastName: lastName,
+                date_of_birth: date_of_birth,
+                email : email,
+                password : password,
+                passwordConfirm : passwordConfirm,
+                role : role
+            });
+        // await user.save()
+        res.status(201).json({ 
+            status : "success",
+            data : {
+                user : user
+            }
+         })
     } catch (error) {
-        console.log(error)
-        return next(createError(500))
+        console.log("Error Type : ", error.name)
+        if (error.name === 'ValidationError') {
+            // Erreur de validation Mongoose
+            const validationErrors = {};
+      
+            // Personnaliser les messages d'erreur
+            for (const field in error.errors) {
+              const errorMessage = error.errors[field].message;
+              validationErrors[field] = errorMessage;
+            }
+
+            return res.status(400).json({ 
+                status : "fail",
+                message : {
+                    errors: validationErrors 
+                } 
+            });
+        }
+        return next(createError(500, `somthing went wrong ${error}`));
     }
 }
 
 const deleteOne = async (req, res, next) => {
     const { id } = req.params
     try {
-        const user = await User.findByIdAndDelete(id)
-        res.json({ user })
+        const deletedUser = await User.findByIdAndDelete(id)
+
+        if (!deletedUser) {
+            return res.status(404).json({ 
+                status : "fail",
+                message: 'user not found' 
+            });
+        }    
+        
+        res.status(200).json({ 
+            status : "success",
+            message : 'user deleted successfully'
+         })
     } catch (error) {
         console.log(error)
         return next(createError(500))
@@ -50,13 +132,62 @@ const deleteOne = async (req, res, next) => {
 
 const updateOne = async (req, res, next) => {
     const { id } = req.params
-    const { name } = req.body
+    //const { name } = req.body
+
+    const { name,email, password, passwordConfirm , date_of_birth } = req.body
     try {
-        const user = await User.updateOne({ _id: id }, { name: name })
-        res.json({ user })
+
+        //user with the id "id" does not existe then we create it
+        const user = await User.findByIdAndUpdate(req.params.id , req.body , {
+            new : true,
+            runValidators : true
+        } );
+        
+        return res.status(201).json({
+            status : "success",
+            data : {
+                user : user
+            }
+        })
+
     } catch (error) {
-        console.log(error)
+        console.log("Error Type : ", error.name)
+        if (error.name === 'ValidationError') {
+            // Erreur de validation Mongoose
+            const validationErrors = {};
+      
+            // Personnaliser les messages d'erreur
+            for (const field in error.errors) {
+              const errorMessage = error.errors[field].message;
+              validationErrors[field] = errorMessage;
+            }
+
+            return res.status(400).json({ 
+                status : "fail",
+                message : {
+                    errors: validationErrors 
+                }
+            });
+        }
         return next(createError(500))
+    }
+}
+
+
+const signup = async(req,res,next)=>{
+
+    try{
+        console.log("signup endpoint");
+        
+
+        
+    }
+    catch(error){
+        res.status(500).json({
+            status : 'fail',
+            message : 'Server internal error !',
+            error : error
+        })
     }
 }
 
@@ -64,8 +195,17 @@ let router = express.Router()
 
 router.get('/:id', getOne)
 router.post('/', createOne)
-router.get('/', getAll)
-router.delete('/:id', deleteOne)
+router.get('/',authController.protect, authController.restrictTo('admin'),getAll)
+router.delete('/:id',authController.protect, authController.restrictTo( 'admin'), deleteOne)
 router.put('/:id', updateOne)
+
+router.post("/signup", authController.signup);
+router.post("/login", authController.login);
+
+router.post("/forgotPassword", authController.forgotPassword);
+router.patch("/resetPassword/:token", authController.resetPassword);
+
+router.patch("/updateMyPassword", authController.protect, authController.updatePassword);
+
 
 module.exports = router
