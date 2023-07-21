@@ -2,6 +2,8 @@
 require('dotenv').config({path : './config.env'})
 const { MongoClient, ServerApiVersion } = require('mongodb')
 
+const dbPostgres = require('../db/postGres/config/dbPostgres');
+
 const mongoose = require('mongoose')
 // try {
 //   mongoose.connect(`mongodb+srv://${process.env.MONGODB_USER}:${process.env.MONGODB_PASS}@${process.env.MONGODB_HOST}/${process.env.MONGODB_DB}?retryWrites=true&w=majority`, {useNewUrlParser: true, useUnifiedTopology: true});
@@ -10,15 +12,24 @@ const mongoose = require('mongoose')
 //   console.log('MongoDB Client Error', error)
 // }
 
+//MongoDb Connection
 const DB = process.env.DATABASE.replace('<PASSWORD>', process.env.DATABASE_PASSWORD);
 mongoose.connect(DB,{
     useNewUrlParser:true,
     // useCreateIndex: true,
     // useFindAndModify:false
 }).then((con)=>{
-    console.log("DB connection successfull");
+    console.log("MongoDB connection successfull");
 });
 
+//PostGres Connection
+dbPostgres.sync()
+  .then(() => {
+    console.log('Connexion to Postgres successfull');
+  })
+  .catch((err) => {
+    console.error('Postgres Synchronization error  : ', err);
+  });
 
 var app = require('../app')
 var debug = require('debug')

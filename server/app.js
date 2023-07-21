@@ -1,12 +1,24 @@
-const Controllers = require("./controllers");
 const express = require("express");
 const cookieParser = require("cookie-parser");
 const logger = require("morgan");
 const cors = require("cors");
 const { initiateForestAdmin } = require('./lib/forestAdminService');
-const { User } = require("./models");
+// const { User } = require("./controllers/userController");
+const dbPostgres = require('./db/postGres/config/dbPostgres');
+const userRouter = require("./routes/userRoutes");
 
 const app = express();
+
+
+//postgres db syncro 
+// dbPostgres.sync()
+//   .then(() => {
+//     console.log('Connexion to Postgres successfull');
+//   })
+//   .catch((err) => {
+//     console.error('Postgres Synchronization error  : ', err);
+//   });
+
 
 if (process.env.BO == 'true') {
     initiateForestAdmin(app)
@@ -22,7 +34,7 @@ app.get("/", function (req, res, next) {
   res.json("API");
 });
 
-app.use("/users", Controllers.User);
+app.use('/api/v1/users', userRouter);
 
 app.use(function (req, res, next) {
   next(createError(404));

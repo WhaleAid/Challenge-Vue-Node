@@ -2,8 +2,12 @@ const {promisify} = require('util');
 const jwt = require('jsonwebtoken');
 const createError = require('http-errors');
 const crypto = require('crypto');
+// const postgresQuries = require(`${__dirname}/../db/postGres/posgresQueries`);
+// const pool = require(`${__dirname}/../db/postGres/dbPostgres`);
 
-const { User } = require('../models');
+
+const UserMg = require('../db/mongo/models/userModel');
+const UserPg = require('./../db/postGres/models/userPostgresModel');
 const Email = require('./../utils/email');
 
 const signToken = id => {
@@ -12,6 +16,8 @@ const signToken = id => {
     })
 };
 
+
+const blacklist = [];
 
 const createSendToken = (user,statusCode,res)=>{
     const token = signToken(user._id);
@@ -29,13 +35,24 @@ exports.signup = async(req,res,next)=>{
 
     try{
         console.log("signup endpoint");
-        const newUser = await User.create({
+        const newUser = await UserMg.create({
             firstName : req.body.firstName,
             lastName : req.body.lastName,
             email : req.body.email,
             password : req.body.password,
             passwordConfirm : req.body.passwordConfirm
         });
+
+        //postgres
+        const newUserPg = await UserPg.create({
+            firstname: req.body.firstName,
+            lastname: req.body.lastName,
+            email: req.body.email,
+            password: newUser.password, // Vous devriez utiliser bcrypt pour hacher le mot de passe
+            
+        });
+        
+        
         
         const url = 'httpp://www.google.com';
         await new Email(newUser, url).sendWelcome();
@@ -63,7 +80,7 @@ exports.signup = async(req,res,next)=>{
                 }
             });
         }
-        return next(createError(500))
+        return next(createError(500,`something went wrong : ${error}`))
     }
     
 };
@@ -72,9 +89,9 @@ exports.signup = async(req,res,next)=>{
 exports.login = async(req,res,next)=>{
 
     try {
+        console.log("login endpoint");
         const {email,password} = req.body;
 
-        console.log("login endpoint");
     
         //1 check if email and password exist
         if(!email || !password){
@@ -82,7 +99,7 @@ exports.login = async(req,res,next)=>{
         }
 
         //2 check if user exists and password is correct
-        const user = await User.findOne({email : email }).select('+password');
+        const user = await UserMg.findOne({email : email }).select('+password');
         console.log(user);
 
 
@@ -114,7 +131,7 @@ exports.login = async(req,res,next)=>{
                 }
             });
         }
-        return next(createError(500))
+        return next(createError(500,`something went wrong : ${error}`))
     }
     
 };
@@ -122,14 +139,14 @@ exports.login = async(req,res,next)=>{
 
 exports.protect = async (req,res,next) =>{
     try {
-        console.log("protect middleware");
+        //console.log("protect middleware");
         let token;
         //1 getting the token a check if it exists (chheck in the headers)
         if(req.headers.authorization && req.headers.authorization.startsWith('Bearer')){
             token = req.headers.authorization.split(' ')[1];
         }
         //console.log("the token is :", token);
-        if(!token){
+        if(!token || blacklist.includes(token)){
             return next(createError( 401 ,'You are not logged in ! please log in to get access'));
         }
 
@@ -139,7 +156,7 @@ exports.protect = async (req,res,next) =>{
 
 
         //3check if user still exists (dans le cas ou le token est valide mais que le user n'existe plus)
-        const currentUser = await User.findById(decoded.id);
+        const currentUser = await UserMg.findById(decoded.id);
         //console.log("the freshUser : ", currentUser )
         if(!currentUser){
             return next(createError(401, 'The user belonging to the token no longer exists'));
@@ -154,15 +171,17 @@ exports.protect = async (req,res,next) =>{
         req.user = currentUser;
         next();
     } catch (error) {
-        return next(createError(500,`something went wrong : ${error}`))
+        return next(createError(500,`something went wrong : ${error}`));
     }
     
 };
 
 exports.restrictTo = (...roles) =>{
+
+    // console.log("restrictTo middleware");
     return (req,res,next) =>{
 
-        console.log("restrict middleware", `roles : ${roles}`, `current user : ${req.user}`);
+        //console.log("restrict middleware", `roles : ${roles}`, `current user is : ${req.user}`);
 
 
         if(!roles.includes(req.user.role)){
@@ -177,9 +196,9 @@ exports.restrictTo = (...roles) =>{
 exports.forgotPassword = async (req,res,next)=>{
 
     try {
-        // console.log("forgot password endpoint");
+        console.log("forgot password endpoint");
         //1 find user based on POSTed email
-        const user = await User.findOne({email : req.body.email});
+        const user = await UserMg.findOne({email : req.body.email});
         if(!user)
         {
             return next(createError(404,'There is no user with this email adress'));
@@ -203,7 +222,7 @@ exports.forgotPassword = async (req,res,next)=>{
             //     message
             // })
 
-            const resetURL = `${req.protocol}://${req.get('host')}/users/resetPassword/${resetToken}`;
+            const resetURL = `${req.protocol}://${req.get('host')}/api/v1/users/resetPassword/${resetToken}`;
             await new Email(user,resetURL).sendPasswordReset();
         
             res.status(200).json({
@@ -236,7 +255,7 @@ exports.resetPassword =  async (req,res,next)=>{
         const hashedToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
         // console.log("hashed tken : ",hashedToken);
     
-        let user = await User.findOne({
+        let user = await UserMg.findOne({
                                     passwordResetToken : hashedToken,
                                     //attention ici j'approxime vu qu'il y'a un décalage horaire (cela pourrait poser problème)
                                     passwordResetExpires : {$gt : Date.now() - 2 * 60 * 60 * 1000 }
@@ -250,12 +269,19 @@ exports.resetPassword =  async (req,res,next)=>{
             return next(createError(404,'Token is invalid or has expired '));
         }
         
-        
+        //update Mongo user
         user.password = req.body.password;
         user.passwordConfirm = req.body.passwordConfirm;
         user.passwordResetToken = undefined;
         user.passwordResetExpires = undefined;
         await user.save();
+
+        
+
+        //update postgres user 
+        //await pool.query(postgresQuries.updatePassword, [user.password, user.email]);
+
+
         //3 Update the changedPasswordAt property for the user
         //4 Log the user in, send JWT
         createSendToken(user,200,res);
@@ -276,7 +302,7 @@ exports.updatePassword = async (req,res,next)=> {
         //1 get user from collection
         //the protect middleware carries the current logged in user
         console.log("update password endpoint");
-        const user = await User.findById(req.user.id).select('password');
+        const user = await UserMg.findById(req.user.id).select('password');
 
         //2 check if POSTed current password is correct
         if(!(await user.correctPassword(req.body.passwordCurrent,user.password))){
@@ -289,11 +315,36 @@ exports.updatePassword = async (req,res,next)=> {
         await user.save();
         //User.findByIdAndUpdate will not work as intended
 
+        //update Pg user 
+        const userEmail = req.user.email;
+        const userPg = await UserPg.findOne({ where: { email : userEmail } });
+        //console.log("user (pg) to update : ", userPg);
+        //update the pg user password with the mongo one
+        userPg.password = user.password;
+        await userPg.save();
 
         //4 Log user in, send jwt token
         createSendToken(user,200,res);
     } catch (error) {
-        return next(createError(500,`something went wrong : ${error}`))
+        return next(createError(500,`something went wrong : ${error}`));
     }
     
 };
+
+
+exports.logout = async (req,res,next)=>{
+    console.log("logout endpoint");
+    try {
+        const token = req.headers.authorization?.split(' ')[1];
+    if (token) {
+        blacklist.push(token);
+    }
+    res.status(200).json({
+        status : "success",
+        message : "Vous avez bien été connecté"
+    });
+
+    } catch (error) {
+        return next(createError(500,`something went wrong : ${error}`));
+    }
+}

@@ -1,5 +1,5 @@
 // math.test.js
-const {addNumbers,subtractNumbers}  = require('./../utils/math');
+const {addNumbers,subtractNumbers}  = require('../server/utils/math');
 
 
 // Test de la fonction addNumbers

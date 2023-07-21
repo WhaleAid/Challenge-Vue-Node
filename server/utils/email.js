@@ -6,13 +6,14 @@ module.exports = class Email {
     constructor(user, url){
         this.to = user.email;
         this.firstName = user.firstName;
+        this.lastName = user.lastName;
         this.url = url;
 
         this.from = `Walid IDIR <${process.env.EMAIL_FROM}>`;
     }
 
     newTransport(){
-        if(/*process.env.NODE_ENV === "production"*/ 1){
+        if(process.env.ENV === "production"){
             //sand grid
             return nodemailer.createTransport({
                 // service : 'Sendgrid',
@@ -31,14 +32,14 @@ module.exports = class Email {
             });
         }
 
-        // return nodemailer.createTransport({
-        //     host: process.env.EMAIL_HOST,
-        //     port: process.env.EMAIL_PORT,
-        //     auth: {
-        //       user: process.env.EMAIL_USERNAME,
-        //       pass: process.env.EMAIL_PASSWORD
-        //     }
-        // });
+        return nodemailer.createTransport({
+            host: process.env.EMAIL_HOST,
+            port: process.env.EMAIL_PORT,
+            auth: {
+              user: process.env.EMAIL_USERNAME,
+              pass: process.env.EMAIL_PASSWORD
+            }
+        });
 
          
     }
@@ -49,6 +50,7 @@ module.exports = class Email {
         // 1 render HTML based on a pub template
         const html = pug.renderFile(`${__dirname}/../views/email/${template}.pug`, {
             firstName : this.firstName,
+            lastName : this.lastName,
             url : this.url,
             subject
         });
