@@ -1,13 +1,19 @@
 const mongoose = require('mongoose');
 const validator  = require('validator');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 
 let Schema = mongoose.Schema;
 
 let userSchema = new Schema({
-    name: {
+    firstName: {
         type: String,
-        required: [true, "Please enter your name"],
+        required: [true, "Please enter your firstName"],
+        // unique: true
+    },
+    lastName: {
+        type: String,
+        required: [true, "Please enter your lastName"],
         // unique: true
     },
     email : {
@@ -38,6 +44,11 @@ let userSchema = new Schema({
             message : 'The two passwords are different'
         } 
     },
+    role :{
+        type : String,
+        enum : ['user', 'admin'],
+        default : 'user'
+    },
     date_of_birth: {
         type: Date,
         required: false
@@ -45,6 +56,25 @@ let userSchema = new Schema({
     passwordChangedAt : {
         type : Date,
     },
+    passwordResetToken : String, 
+    passwordResetExpires : Date,
+    games: [{
+        type: Schema.Types.ObjectId,
+        ref: 'Game'
+    }],
+    friends: [{
+        type: Schema.Types.ObjectId,
+        ref: 'User'
+    }],
+    status: {
+        type: String,
+        enum: ['base', 'premium'],
+        default: 'base'
+    },
+    hand: {
+        type: Schema.Types.ObjectId,
+        ref: 'Hand'
+    }
 });
 
 
@@ -59,9 +89,37 @@ userSchema.pre('save', async function(next){
     next();
 });
 
-// userSchema.methods.correctPassword = async function(candidatePassword,userPassword){
-//     return await bcrypt.compare(candidatePassword,userPassword);
-// };
+userSchema.methods.correctPassword = async function(candidatePassword,userPassword){
+    return await bcrypt.compare(candidatePassword,userPassword);
+};
+
+
+userSchema.pre('save', async function(next){
+
+    if(!this.isModified('password') || this.isNew)
+    {
+        return next();
+    }
+
+    this.passwordChangedAt = Date.now()-1000;
+    next();
+});
+
+
+userSchema.methods.createPasswordResetToken = function()
+{
+    const resetToken = crypto.randomBytes(32).toString('hex');
+
+    this.passwordResetToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+
+    console.log({resetToken} , this.passwordResetToken);
+    //exprires in 10 minutes
+    this.passwordResetExpires = Date.now() + 10 * 60 * 1000;
+
+    //we return this because this is the one that we will send 
+    return resetToken;
+}
+
 
 
 // userSchema.methods.changedPasswordAfter = function(JWTTimespamt){
@@ -76,4 +134,5 @@ userSchema.pre('save', async function(next){
 // };
 
 
-module.exports = mongoose.model("User", userSchema);
+const User = mongoose.model("User", userSchema);
+module.exports = User;

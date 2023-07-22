@@ -1,16 +1,30 @@
-const Controllers = require("./controllers");
 const express = require("express");
 const cookieParser = require("cookie-parser");
 const logger = require("morgan");
 const cors = require("cors");
-const { initiateForestAdmin } = require('./lib/forestAdminService');
-const { User } = require("./models");
+// const { initiateForestAdmin } = require('./lib/forestAdminService');
+// const { User } = require("./controllers/userController");
+const dbPostgres = require('./db/postGres/config/dbPostgres');
+const userRouter = require("./routes/userRoutes");
+const cardRouter = require("./routes/cardRoutes");
+const gameRouter = require("./routes/gameRoutes");
 
 const app = express();
 
-if (process.env.BO == 'true') {
-    initiateForestAdmin(app)
-}
+
+//postgres db syncro 
+// dbPostgres.sync()
+//   .then(() => {
+//     console.log('Connexion to Postgres successfull');
+//   })
+//   .catch((err) => {
+//     console.error('Postgres Synchronization error  : ', err);
+//   });
+
+
+// if (process.env.BO == 'true') {
+//     initiateForestAdmin(app)
+// }
 
 app.use(logger("dev"));
 app.use(express.json());
@@ -22,7 +36,9 @@ app.get("/", function (req, res, next) {
   res.json("API");
 });
 
-app.use("/users", Controllers.User);
+app.use('/api/v1/users', userRouter);
+app.use('/api/v1/cards', cardRouter);
+app.use('/api/v1/games', gameRouter);
 
 app.use(function (req, res, next) {
   next(createError(404));
