@@ -5,7 +5,7 @@ const {
   createMongooseDataSource,
 } = require("@forestadmin/datasource-mongoose");
 
-const Models = require("../models");
+// const Models = require("../models");
 
 const initiateForestAdmin = (app) => {
   createAgent({
