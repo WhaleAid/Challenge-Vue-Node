@@ -17,16 +17,16 @@ const getOne = async (req, res, next) => {
     try {
         const user = await UserMg.findById(id);
 
-        if(!user) {
+        if (!user) {
             return next(createError(404));
         }
 
-        res.status(200).json({ 
-            status : "success",
-            data : {
-                user : user
-            }   
-         });
+        res.status(200).json({
+            status: "success",
+            data: {
+                user: user
+            }
+        });
     } catch (error) {
         console.log(error)
         return next(createError(500))
@@ -38,7 +38,7 @@ const getAll = async (req, res, next) => {
     try {
 
         //postgres test
-        
+
         // pool.query(postgresQuries.getUsers, (error, results)=>{
         //     if(error){
         //         throw error;
@@ -51,20 +51,20 @@ const getAll = async (req, res, next) => {
         console.log("getAll users endpoint");
         const users = await UserMg.find();
 
-        res.status(200).json({ 
-            
-            status : 'success',
-            count : users.length,
-            data : {
-                users : users,
+        res.status(200).json({
 
-                
+            status: 'success',
+            count: users.length,
+            data: {
+                users: users,
+
+
             },
             // dataPostres : {
             //     postgres : postgres
             // }
         });
-        
+
     } catch (error) {
         console.log(error)
         return next(createError(500))
@@ -72,18 +72,18 @@ const getAll = async (req, res, next) => {
 }
 
 const createOne = async (req, res, next) => {
-    const { firstName,lastName,email, password, passwordConfirm , date_of_birth, role } = req.body
+    const { firstName, lastName, email, password, passwordConfirm, date_of_birth, role } = req.body
     try {
         const user = await UserMg.create({
-                firstName: firstName,
-                lastName: lastName,
-                date_of_birth: date_of_birth,
-                email : email,
-                password : password,
-                passwordConfirm : passwordConfirm,
-                role : role
-            });
-        
+            firstName: firstName,
+            lastName: lastName,
+            date_of_birth: date_of_birth,
+            email: email,
+            password: password,
+            passwordConfirm: passwordConfirm,
+            role: role
+        });
+
         //create pg user
         // IMPORTANT: I USED THE Already hashed password from the mongo user 
         const newUserpg = await UserPg.create({
@@ -92,32 +92,32 @@ const createOne = async (req, res, next) => {
             email: email,
             password: user.password,
             role: role || 'user',
-          });
-        
+        });
+
         // await user.save()
-        res.status(201).json({ 
-            status : "success",
-            data : {
-                user : user
+        res.status(201).json({
+            status: "success",
+            data: {
+                user: user
             }
-         })
+        })
     } catch (error) {
         console.log("Error Type : ", error.name)
         if (error.name === 'ValidationError') {
             // Erreur de validation Mongoose
             const validationErrors = {};
-      
+
             // Personnaliser les messages d'erreur
             for (const field in error.errors) {
-              const errorMessage = error.errors[field].message;
-              validationErrors[field] = errorMessage;
+                const errorMessage = error.errors[field].message;
+                validationErrors[field] = errorMessage;
             }
 
-            return res.status(400).json({ 
-                status : "fail",
-                message : {
-                    errors: validationErrors 
-                } 
+            return res.status(400).json({
+                status: "fail",
+                message: {
+                    errors: validationErrors
+                }
             });
         }
         return next(createError(500, `somthing went wrong ${error}`));
@@ -130,20 +130,20 @@ const deleteOne = async (req, res, next) => {
         const deletedUser = await UserMg.findByIdAndDelete(id)
         //console.log(deletedUser);
         if (!deletedUser) {
-            return res.status(404).json({ 
-                status : "fail",
-                message: 'user not found' 
+            return res.status(404).json({
+                status: "fail",
+                message: 'user not found'
             });
-        }  
-        
-        const userPg = await UserPg.findOne({ where: { email : deletedUser.email } });
-        console.log("userPg",userPg);
+        }
+
+        const userPg = await UserPg.findOne({ where: { email: deletedUser.email } });
+        console.log("userPg", userPg);
         await userPg.destroy();
-        
-        res.status(200).json({ 
-            status : "success",
-            message : 'user deleted successfully'
-         })
+
+        res.status(200).json({
+            status: "success",
+            message: 'user deleted successfully'
+        })
     } catch (error) {
         console.log(error)
         return next(createError(500))
@@ -154,41 +154,40 @@ const updateOne = async (req, res, next) => {
     const { id } = req.params
     //const { name } = req.body
     //console.log("update user endpoint");
-    const { name,email, password, passwordConfirm , date_of_birth } = req.body
+    const { name, email, password, passwordConfirm, date_of_birth } = req.body
     try {
         //user with the id "id" does not existe then we create it
         // const user = await UserMg.findByIdAndUpdate(req.params.id , req.body , {
-            // new : true,
-            // runValidators : true
+        // new : true,
+        // runValidators : true
         // } );
         const CurrentUser = await UserMg.findOne({ _id: id });
         const updatedUser = await UserMg.updateOne({ _id: id }, { $set: req.body }, {
-            new : true,
-            runValidators : true
+            new: true,
+            runValidators: true
         });
 
         //pg user update 
         //search ny email 
         let userEmail;
-        
-        if(req.body.email)
-        {
+
+        if (req.body.email) {
             userEmail = CurrentUser.email
-        }else{
+        } else {
             userEmail = updatedUser.email
         }
 
-        
-        console.log("userEmail", userEmail );
-        const userPg = await UserPg.findOne({ where: { email : userEmail  } });
+
+        console.log("userEmail", userEmail);
+        const userPg = await UserPg.findOne({ where: { email: userEmail } });
         //lowercase all the left attributs in the req.body because in PostGres all the column names are in lowercase
         const updatedUserData = Object.fromEntries(Object.entries(req.body).map(([key, value]) => [key.toLowerCase(), value]));
         await userPg.update(updatedUserData);
 
         return res.status(201).json({
-            status : "success",
-            data : {
-                user : updatedUser
+            status: "success",
+            data: {
+                user: updatedUser
             }
         })
 
@@ -197,21 +196,21 @@ const updateOne = async (req, res, next) => {
         if (error.name === 'ValidationError') {
             // Erreur de validation Mongoose
             const validationErrors = {};
-      
+
             // Personnaliser les messages d'erreur
             for (const field in error.errors) {
-              const errorMessage = error.errors[field].message;
-              validationErrors[field] = errorMessage;
+                const errorMessage = error.errors[field].message;
+                validationErrors[field] = errorMessage;
             }
 
-            return res.status(400).json({ 
-                status : "fail",
-                message : {
-                    errors: validationErrors 
+            return res.status(400).json({
+                status: "fail",
+                message: {
+                    errors: validationErrors
                 }
             });
         }
-        return next(createError(500,`${error}`))
+        return next(createError(500, `${error}`))
     }
 }
 
@@ -220,9 +219,9 @@ const updateOne = async (req, res, next) => {
 
 //     try{
 //         console.log("signup endpoint");
-        
 
-        
+
+
 //     }
 //     catch(error){
 //         res.status(500).json({

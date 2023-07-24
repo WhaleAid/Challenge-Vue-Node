@@ -2,6 +2,7 @@ const {promisify} = require('util');
 const jwt = require('jsonwebtoken');
 const createError = require('http-errors');
 const crypto = require('crypto');
+const TokenBlacklist = require('../../server/db/mongo/models/TokenBlackList');
 // const postgresQuries = require(`${__dirname}/../db/postGres/posgresQueries`);
 // const pool = require(`${__dirname}/../db/postGres/dbPostgres`);
 
@@ -34,7 +35,14 @@ const createSendToken = (user,statusCode,res)=>{
 exports.signup = async(req,res,next)=>{
 
     try{
-        console.log("signup endpoint");
+
+        if((await UserMg.findOne({ email: req.body.email }))  
+            || (await UserPg.findOne({ where: { email: req.body.email } })))
+            {
+                return next(createError(409,`User already exists`));
+            }
+
+        console.log("signup endpoint accessed");
         const newUser = await UserMg.create({
             firstName : req.body.firstName,
             lastName : req.body.lastName,
@@ -42,7 +50,7 @@ exports.signup = async(req,res,next)=>{
             password : req.body.password,
             passwordConfirm : req.body.passwordConfirm
         });
-
+        console.log("signup endpoint Part 1 ");
         //postgres
         const newUserPg = await UserPg.create({
             firstname: req.body.firstName,
@@ -51,7 +59,7 @@ exports.signup = async(req,res,next)=>{
             password: newUser.password, // Vous devriez utiliser bcrypt pour hacher le mot de passe
             
         });
-        
+        console.log("signup endpoint Part 2");
         
         
         const url = 'httpp://www.google.com';
@@ -62,7 +70,7 @@ exports.signup = async(req,res,next)=>{
         
     }
     catch(error){
-        console.log("Error Type : ", error.name)
+        //console.log("Error Type : ", error.name)
         if (error.name === 'ValidationError') {
             // Erreur de validation Mongoose
             const validationErrors = {};
@@ -100,13 +108,27 @@ exports.login = async(req,res,next)=>{
 
         //2 check if user exists and password is correct
         const user = await UserMg.findOne({email : email }).select('+password');
-        console.log(user);
+        // console.log(await user.correctPassword("dd","dd"));
+        console.log("type of user : ",typeof user);
 
+        //await user.correctPassword(password,user.password);
 
-        if(!user || !(await user.correctPassword(password,user.password))){
+        if(!user){
             //401 is unauthorized
-            return next(createError( 401,'Incorrect email or password'));
+            return next(createError( 401,'Incorrect email'));
         }
+
+        const isPasswordCorrect = await user.correctPassword(password, user.password);
+
+        if (!isPasswordCorrect) {
+        return next(createError(401, 'Incorrect password'));
+        }
+
+        // if(!(await user.correctPassword(password,user.password)))
+        // {   
+        //     console.log("test login password");
+        //     return next(createError( 401,'Incorrect password'));
+        // }
     
         // //if everything ok send the token to client
         createSendToken(user,200,res);
@@ -131,6 +153,8 @@ exports.login = async(req,res,next)=>{
                 }
             });
         }
+        if(error.name = "TypeError") return next(createError(500,`No user found with this email or something else went wrong`))
+        
         return next(createError(500,`something went wrong : ${error}`))
     }
     
@@ -348,3 +372,22 @@ exports.logout = async (req,res,next)=>{
         return next(createError(500,`something went wrong : ${error}`));
     }
 }
+
+// exports.logout = async (req, res, next) => {
+//     try {
+//       const token = req.headers.authorization?.split(' ')[1];
+//       if (token) {
+//         // Ajouter le token à la liste noire
+//         await TokenBlacklist.create({ token });
+        
+//         return res.status(200).json({
+//           status: 'success',
+//           message: 'Successfully logged out'
+//         });
+//       } else {
+//         return next(createError(401, 'You are not logged in'));
+//       }
+//     } catch (error) {
+//       return next(createError(500, `Something went wrong: ${error}`));
+//     }
+// };
