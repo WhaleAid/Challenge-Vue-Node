@@ -13,7 +13,8 @@ router.route("/resetPassword/:token").patch(authController.resetPassword);
 router
   .route("/updateMyPassword")
   .patch(authController.protect, authController.updatePassword);
-router.route("/logout").patch(authController.logout);
+
+router.route("/logout").get(authController.logout);
 
 router
   .route("/me")
