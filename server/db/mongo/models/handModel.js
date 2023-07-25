@@ -5,15 +5,18 @@ let Schema = mongoose.Schema;
 let handSchema = new Schema({
     player: {
         type: Schema.Types.ObjectId,
-        ref: 'User'
+        ref: 'User',
+        required: true
     },
     cards: [{
         type: Schema.Types.ObjectId,
-        ref: 'Card'
+        ref: 'Card',
+        required: true
     }],
     game: {
         type: Schema.Types.ObjectId,
-        ref: 'Game'
+        ref: 'Game',
+        required: true
     },
     turn: {
         type: Boolean,

@@ -297,15 +297,18 @@ const updateMe = async (req, res, next) => {
 };
 
 const joinGame = async (req, res, next) => {
-  const { id } = req.params;
+  const { gameId } = req.params;
   const userId = req.user._id;
   try {
-    const game = await GameMg.findById(id);
+    const game = await GameMg.findById(gameId);
     if (!game) {
       return next(createError(404));
     }
-    if (game.status !== "created") {
+    if (game.status === "started") {
       return next(createError(400, "game already started"));
+    }
+    if (game.status === "ended") {
+      return next(createError(400, "game already ended"));
     }
     if (game.players.includes(userId)) {
       return next(createError(400, "user already joined"));
@@ -327,6 +330,31 @@ const joinGame = async (req, res, next) => {
   }
 };
 
+// const makeMove = async (req, res, next) => {
+//   const { id } = req.params;
+//   const userId = req.user._id;
+//   const { cardId, gameId } = req.body;
+
+//   const user = await UserMg.findById(userId);
+//   if (!user) {
+//     return next(createError(404, "user not found"));
+//   }
+//   const game = await GameMg.findById(gameId).populate("currentCard");
+//   if (!game) {
+//     return next(createError(404, "game not found"));
+//   }
+//   const card = await CardMg.findById(cardId);
+//   if (!card) {
+//     return next(createError(404, "card not found"));
+//   }
+//   if (game.status !== "started") {
+//     return next(createError(400, "game not started"));
+//   }
+
+    
+
+
+
 // const signup = async(req,res,next)=>{
 
 //     try{
@@ -341,6 +369,12 @@ const joinGame = async (req, res, next) => {
 //         })
 //     }
 // }
+
+
+
+
+
+
 
 module.exports = {
   // signup,
