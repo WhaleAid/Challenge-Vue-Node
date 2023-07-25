@@ -282,7 +282,7 @@ const updateMe = async (req, res, next) => {
     if (date_of_birth) {
       user.date_of_birth = date_of_birth;
     }
-    await user.save();
+    await user.save( { validateBeforeSave: false });
 
     res.status(200).json({
       status: "success",
