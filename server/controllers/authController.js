@@ -11,8 +11,8 @@ const UserMg = require('../db/mongo/models/userModel');
 const UserPg = require('./../db/postGres/models/userPostgresModel');
 const Email = require('./../utils/email');
 
-const signToken = id => {
-    return jwt.sign({id : id}, process.env.JWT_SECRET, {
+const signToken = user => {
+    return jwt.sign({id : user._id, role:user.role}, process.env.JWT_SECRET, {
         expiresIn : process.env.JWT_EXPIRES_IN
     })
 };
@@ -21,7 +21,7 @@ const signToken = id => {
 const blacklist = [];
 
 const createSendToken = (user,statusCode,res)=>{
-    const token = signToken(user._id);
+    const token = signToken(user);
 
     res.status(statusCode).json({
         status : 'success',
@@ -163,7 +163,7 @@ exports.login = async(req,res,next)=>{
 
 exports.protect = async (req,res,next) =>{
     try {
-        //console.log("protect middleware");
+        console.log("protect middleware");
         let token;
         //1 getting the token a check if it exists (chheck in the headers)
         if(req.headers.authorization && req.headers.authorization.startsWith('Bearer')){
@@ -202,7 +202,7 @@ exports.protect = async (req,res,next) =>{
 
 exports.restrictTo = (...roles) =>{
 
-    // console.log("restrictTo middleware");
+    console.log("restrictTo middleware");
     return (req,res,next) =>{
 
         //console.log("restrict middleware", `roles : ${roles}`, `current user is : ${req.user}`);
@@ -210,7 +210,7 @@ exports.restrictTo = (...roles) =>{
 
         if(!roles.includes(req.user.role)){
             
-            return next(createError(403, 'You do not have permission to perform this action'));
+            return next(createError(403, 'You do not have permission to perform this action !!'));
         }
         next();
     }
@@ -356,22 +356,29 @@ exports.updatePassword = async (req,res,next)=> {
 };
 
 
-exports.logout = async (req,res,next)=>{
-    console.log("logout endpoint");
-    try {
-        const token = req.headers.authorization?.split(' ')[1];
-    if (token) {
-        blacklist.push(token);
-    }
-    res.status(200).json({
-        status : "success",
-        message : "Vous avez bien été connecté"
-    });
+// exports.logout = async (req,res,next)=>{
+//     console.log("logout endpoint");
+//     try {
+//         const token = req.headers.authorization?.split(' ')[1];
+//     if (token) {
+//         blacklist.push(token);
+//     }
+//     res.status(200).json({
+//         status : "success",
+//         message : "Vous avez bien été connecté"
+//     });
 
-    } catch (error) {
-        return next(createError(500,`something went wrong : ${error}`));
-    }
-}
+//     } catch (error) {
+//         return next(createError(500,`something went wrong : ${error}`));
+//     }
+// }
+
+exports.logout = (req, res) => {
+    // Clear the JWT token from the cookie
+    console.log("logout function !");
+    res.clearCookie('jwt');
+    res.status(200).json({ status: 'success' });
+  };
 
 // exports.logout = async (req, res, next) => {
 //     try {

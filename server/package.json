@@ -10,8 +10,8 @@
   "author": "Whale 🐳",
   "license": "ISC",
   "dependencies": {
-    "@forestadmin/agent": "^1.11.0",
-    "@forestadmin/datasource-mongoose": "^1.4.0",
+    "@forestadmin/agent": "^1.13.6",
+    "@forestadmin/datasource-mongoose": "^1.4.3",
     "axios": "^1.4.0",
     "bcrypt": "^5.1.0",
     "bcryptjs": "^2.4.3",

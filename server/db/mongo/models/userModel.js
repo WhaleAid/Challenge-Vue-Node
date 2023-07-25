@@ -57,7 +57,24 @@ let userSchema = new Schema({
         type : Date,
     },
     passwordResetToken : String, 
-    passwordResetExpires : Date 
+    passwordResetExpires : Date,
+    games: [{
+        type: Schema.Types.ObjectId,
+        ref: 'Game'
+    }],
+    friends: [{
+        type: Schema.Types.ObjectId,
+        ref: 'User'
+    }],
+    status: {
+        type: String,
+        enum: ['base', 'premium'],
+        default: 'base'
+    },
+    hand: {
+        type: Schema.Types.ObjectId,
+        ref: 'Hand'
+    }
 });
 
 
