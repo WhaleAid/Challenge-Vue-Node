@@ -1,7 +1,7 @@
 .DS_Store
 node_modules
 /dist
-
+./src/components/SignUpForm.vue
 
 # local env files
 .env.local
