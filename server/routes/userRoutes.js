@@ -20,7 +20,8 @@ router
   .route("/me")
   .get(authController.protect, userController.getMe)
   .patch(authController.protect, userController.updateMe)
-  .delete(authController.protect, userController.deleteMe);
+  .delete(authController.protect, userController.deleteMe)
+  .put(authController.protect, userController.updateMyStatus);
 
 router
   .route("/joinGame/:id")

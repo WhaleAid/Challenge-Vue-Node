@@ -1,21 +1,30 @@
 <template>
+
   <div>
-    <NavBar/>
-    <h1>Update User</h1>
-    <form @submit.prevent="updateUser">
-      <label for="firstName">First Name:</label>
-      <input id="firstName" v-model="user.firstName" required />
+    <div v-if="loading">Chargement...</div>
 
-      <label for="lastName">Last Name:</label>
-      <input id="lastName" v-model="user.lastName" required />
+    <div v-else>
+        <NavBar/>
+        <h1>Update User</h1>
+        <form @submit.prevent="updateUser">
+        <label for="firstName">First Name:</label>
+        <input id="firstName" v-model="user.firstName" required />
+        <br>  
+        <label for="lastName">Last Name:</label>
+        <input id="lastName" v-model="user.lastName" required />
+        <br> 
+        <label for="email">Email:</label>
+        <input id="email" v-model="user.email" required />
+        <br> 
+        <label for="role">Role:</label>
+        <input id="role" v-model="user.role" required />
+        <br> 
+        <!-- Vous pouvez ajouter d'autres champs ici -->
 
-      <label for="email">Email:</label>
-      <input id="email" v-model="user.email" required />
-
-      <!-- Vous pouvez ajouter d'autres champs ici -->
-
-      <button type="submit">Update</button>
-    </form>
+        <button type="submit">Update</button>
+        </form>
+    </div>
+    
   </div>
 </template>
 
@@ -32,6 +41,7 @@ export default {
     data() {
         return {
             user: {},
+            loading: true,
         };
     },
     methods: {
@@ -45,6 +55,8 @@ export default {
                 this.user = response.data.data.user; // Assurez-vous que cela correspond à la structure de vos données retournées
             } catch (error) {
                 console.error(error);
+            } finally {
+                this.loading = false;
             }
         },
         async updateUser() {
@@ -61,8 +73,8 @@ export default {
             }
         },
     },
-    created() {
-        this.loadUser();
+    async created() {
+        await this.loadUser();
     },
 };
 </script>

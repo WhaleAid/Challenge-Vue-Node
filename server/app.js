@@ -9,6 +9,7 @@ const dbPostgres = require('./db/postGres/config/dbPostgres');
 const userRouter = require("./routes/userRoutes");
 const cardRouter = require("./routes/cardRoutes");
 const gameRouter = require("./routes/gameRoutes");
+const paimentRouter = require("./routes/paimentRoutes");
 
 const app = express();
 
@@ -40,6 +41,7 @@ app.get("/", function (req, res, next) {
 app.use('/api/v1/users', userRouter);
 app.use('/api/v1/cards', cardRouter);
 app.use('/api/v1/games', gameRouter);
+app.use('/api/v1/paiment',paimentRouter);
 
 app.use(function (req, res, next) {
   next(createError(404));

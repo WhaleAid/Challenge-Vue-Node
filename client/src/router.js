@@ -7,6 +7,8 @@ import CreateUser from './components/CreateUser.vue';
 import UserProfile from './components/UserProfile.vue';
 import ForgotPassword from './components/ForgotPassword.vue';
 import ResetPassword from './components/ResetPassword.vue';
+import PaymentSuccess from './components/PaymentSuccess.vue';
+import PaymentError from './components/PaymentError';
 import { useToast } from 'vue-toastification';
 
 const routes = [
@@ -53,9 +55,21 @@ const routes = [
         path: '/resetPassword/:token',
         component: ResetPassword 
         
-    }
-
-
+    },
+    {
+        
+        path: '/paiement-success',
+        component: PaymentSuccess,
+        meta: { requiresAuth: true }
+    },
+    
+    {
+        
+        path: '/paiement-fail',
+        component: PaymentError,
+        meta: { requiresAuth: true }
+    },
+        
   ];
 
   const router = createRouter({

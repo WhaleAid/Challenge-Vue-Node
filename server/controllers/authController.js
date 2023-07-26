@@ -350,7 +350,8 @@ exports.updatePassword = async (req,res,next)=> {
         //4 Log user in, send jwt token
         createSendToken(user,200,res);
     } catch (error) {
-        return next(createError(500,`something went wrong : ${error}`));
+        console.log(`something went wrong : ${error}`);
+        return next(createError(500,`Un problème est survenu... veuillez réeessayer`));
     }
     
 };
