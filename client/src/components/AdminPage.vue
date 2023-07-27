@@ -2,13 +2,15 @@
     <div>
         <h1>Page Admin !</h1>
         <button @click="createUser">Créer un nouvel utilisateur</button>
-        <table>
+        <div v-if="loading">Chargement...</div>
+        <table v-else>
             <thead>
                 <tr>
                     <th>ID</th>
                     <th>Prénom</th>
                     <th>Nom</th>
                     <th>Email</th>
+                    <th>Role</th>
                     <th>Update</th>
                     <th>Delete</th>
                 </tr>
@@ -19,6 +21,7 @@
                     <td>{{ user.firstName }}</td>
                     <td>{{ user.lastName }}</td>
                     <td>{{ user.email }}</td>
+                    <td>{{ user.role }}</td>
                     <td>
                        <button @click="goToUpdatePage(user._id)">Update</button>
                     </td>
@@ -40,12 +43,25 @@ export default {
     data() {
         return {
             users: [],
+            loading: true,
         };
     },
     methods: {
-        updateUser(id) {
-            console.log('Update user with ID: ', id);
-            // Ici, vous pouvez ajouter le code pour mettre à jour l'utilisateur
+        async loadUsers() {
+            const token = localStorage.getItem('token');
+            const decodedToken = jwtDecode(token);
+            if (decodedToken.role === 'admin') {
+                try {
+                    const response = await axios.get(`${process.env.VUE_APP_API_URL}/api/v1/users/`, {
+                        headers: { Authorization: `Bearer ${token}` },
+                    });
+                    this.users = response.data.data.users;
+                } catch (error) {
+                    console.error(error);
+                } finally {
+                    this.loading = false;
+                }
+            }
         },
         async deleteUser(id) {
             try {
@@ -59,20 +75,6 @@ export default {
                 console.error(error);
             }
         },
-        async loadUsers() {
-            const token = localStorage.getItem('token');
-            const decodedToken = jwtDecode(token);
-            if (decodedToken.role === 'admin') {
-                try {
-                    const response = await axios.get(`${process.env.VUE_APP_API_URL}/api/v1/users/`, {
-                        headers: { Authorization: `Bearer ${token}` },
-                    });
-                    this.users = response.data.data.users;
-                } catch (error) {
-                    console.error(error);
-                }
-            }
-        },
         goToUpdatePage(id) {
             this.$router.push(`/update-user/${id}`);
         },
@@ -80,8 +82,8 @@ export default {
             this.$router.push('/createUser');
         },
     },
-    created() {
-        this.loadUsers();
+    async created() {
+        await this.loadUsers();
     },
 };
 </script>
