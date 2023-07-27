@@ -41,7 +41,9 @@ export default {
         
         // La requête a réussi, rediriger l'utilisateur vers la page d'accueil
         if (response.status === 201) {
-          this.$router.push({ name: 'HomePage' });
+           localStorage.setItem('token', response.data.token);
+            console.log('Token stored:', localStorage.getItem('token'));
+            this.$router.push('/home');
         } else {
           // Gérer les autres codes de statut ici si nécessaire
           this.errorMessage = response.data.message;
