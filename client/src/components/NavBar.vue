@@ -1,79 +1,131 @@
 <template>
   <nav>
-    <router-link to="/home">Home</router-link>
+    <router-link to="/home">
+      <div class="logo">
+        <div class="uno-circle"></div>
+        <div class="uno-logo">
+          <p>
+            UNO
+          </p>
+        </div>
+      </div>
+    </router-link>
     <!-- You can add more links here -->
 
     <!-- Dropdown Menu -->
-    <div class="dropdown" style="float:right;">
-      <button class="dropbtn">Menu</button>
-      <div class="dropdown-content">
-        <router-link to="/profile">Modifier le profil</router-link>
-        <a @click="logout">Déconnexion</a>
-      </div>
+    <div class="dropdown-content">
+      <router-link to="/profile">
+        <font-awesome-icon icon="fa-solid fa-user-pen" />
+      </router-link>
+      <a @click="logout">
+        <font-awesome-icon icon="fa-solid fa-right-from-bracket" />
+      </a>
     </div>
   </nav>
 </template>
 
 <script>
 import axios from 'axios';
-import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
 
 export default {
   methods: {
     async logout() {
-    try {
-      const response = await axios.get(process.env.VUE_APP_API_URL + '/api/v1/users/logout');
-      if (response.data.status === 'success') {
-        // Remove JWT token from localStorage
-        localStorage.removeItem('token');
-        // Redirect to login page
-         toast("Successfully logged out !", {
-                autoClose: 1000,
-            });
-        this.$router.push('/');
+      try {
+        const response = await axios.get(process.env.VUE_APP_API_URL + '/api/v1/users/logout');
+        if (response.data.status === 'success') {
+          // Remove JWT token from localStorage
+          localStorage.removeItem('token');
+          // Redirect to login page
+          this.$router.push('/');
+        }
+      } catch (error) {
+        console.error('Error during logout:', error);
       }
-    } catch (error) {
-      console.error('Error during logout:', error);
     }
-  }
   }
 }
 </script>
 
 <style>
-.dropdown {
-  position: relative;
-  display: inline-block;
+.dropdown-content {
+  display: flex;
+  color: black;
+  justify-content: space-evenly;
+  border-radius: 50%;
+  gap: 30px;
+  align-items: center;
 }
 
-.dropdown-content {
-  display: none;
+nav .uno-logo p {
+  background: linear-gradient(to bottom, yellow, white);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  -webkit-text-stroke-width: 1px;
+  -webkit-text-stroke-color: black;
+  text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.2);
+  transform: rotate(-45deg);
+  font-size: 16px;
+  font-weight: bold;
+}
+
+nav .uno-circle {
   position: absolute;
-  right: 0;
-  background-color: #f9f9f9;
-  min-width: 160px;
-  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  width: 40px;
+  height: 60px;
+  background-color: red;
+  transform: rotate(45deg) translate(-16px, -15px);
+  border-radius: 50%;
   z-index: 1;
 }
 
-.dropdown-content a {
-  color: black;
-  padding: 12px 16px;
-  text-decoration: none;
-  display: block;
+nav .uno-logo {
+  position: relative;
+  z-index: 2;
 }
 
-.dropdown-content a:hover {background-color: #f1f1f1}
+.dropdown-content a {
+  border-radius: 10px;
+}
 
-.dropdown:hover .dropdown-content {
-  display: block;
+.dropdown-content a svg {
+  color: black;
+  /* padding: 12px 16px; */
+  margin: auto;
+  text-decoration: none;
+  padding: 10px;
+  display: flex;
+  cursor: pointer;
+}
+
+.dropdown-content a svg:nth-child(2) {
+  color: red;
+}
+
+.dropdown-content a:hover {
+  background-color: #ddd;
 }
 
 .dropdown:hover .dropbtn {
   background-color: #3e8e41;
 }
+
 nav {
- border: 1px solid black;   
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 0 0 15px 15px;
+  padding: 10px 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+nav a {
+  text-decoration: none;
+  font-weight: 500;
 }
 </style>

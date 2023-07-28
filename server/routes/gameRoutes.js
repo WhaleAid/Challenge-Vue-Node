@@ -44,5 +44,6 @@ router
 router
 .route("/:id")
 .post(authController.protect,gameController.startGame)
+.get(authController.protect,gameController.getOne)
 
 module.exports = router;

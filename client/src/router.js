@@ -5,6 +5,7 @@ import AdminPage from './components/AdminPage.vue';
 import UpdateUser from './components/UpdateUser.vue';
 import CreateUser from './components/CreateUser.vue';
 import UserProfile from './components/UserProfile.vue';
+import GameBoard from './components/GameBoard.vue';
 import ForgotPassword from './components/ForgotPassword.vue';
 import ResetPassword from './components/ResetPassword.vue';
 import PaymentSuccess from './components/PaymentSuccess.vue';
@@ -56,6 +57,11 @@ const routes = [
         path: '/resetPassword/:token',
         component: ResetPassword 
         
+    },
+    {
+        path: '/game/:id',
+        component: GameBoard,
+        meta: { requiresAuth: true }
     },
     {
         

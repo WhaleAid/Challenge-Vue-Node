@@ -1,57 +1,63 @@
 <template>
     <div>
-        <NavBar/>
-        <h1>Bienvenue sur la page d'accueil !</h1>
-        <div v-if="isAdmin==='false'">
-            Utilisateur : {{status}}
+        <NavBar />
+        <h1>Welcome {{ firstName }} {{ lastName }}</h1>
+        <div v-if="isAdmin === 'false'">
+            Utilisateur : {{ status }}
         </div>
 
-        <div v-if="status === 'base' && isAdmin===false">
+        <div class="payment" v-if="status === 'base' && isAdmin === false">
             <button @click="goPremium">Passer premium</button>
         </div>
-        
-       <div v-if="isAdmin">
+
+        <div class="admin-link" v-if="isAdmin">
             <router-link to="/admin">Section administrateur</router-link>
         </div>
 
-        <!-- create game  -->
-        <div>
-          <button @click="createGame">Créer une partie</button>
+        <div class="create-game">
+            <button @click="createGame">Créer une partie <font-awesome-icon icon="fa-solid fa-plus" /></button>
         </div>
 
-        <div style="border: 1px solid black">
-            <div v-if="myGame">
-                <div>ID de ma Game {{ myGame._id }}</div> 
-                <p>Ma partie en cours <router-link :to="`/game/${myGame._id}`">Aller à la partie</router-link> </p>
-            </div>
+        <div class="sections">
+            <div class="section-dash">
+                <div class="mygames-listing" v-if="myGame">
+                    <div class="">Game is {{ myGame.status }}</div>
+                    <p>{{ truncateId(myGame._id) }} <router-link :to="`/game/${myGame._id}`">
+                            <font-awesome-icon icon="fa-solid fa-circle-chevron-right" />
+                        </router-link> </p>
+                </div>
 
-            <div v-else>
-                {{ myGameMessage }}
-            </div>
-        </div>
-
-        <div style="border: 1px solid black">
-            <h2>Toutes les parties en cours</h2>
-            <div v-if="gamesInProgress.length > 0">
-                <div v-for="(game, index) in gamesInProgress" :key="index">
-                    {{ game._id }} 
-                    <button @click="joinGame(game._id)">Rejoindre la partie</button>
+                <div v-else>
+                    {{ myGameMessage }}
                 </div>
             </div>
-            <div v-else>
-                {{ gamesInProgressMessage }}
+
+            <div class="section-dash">
+                <h2>Active games</h2>
+                <div class="games-list" v-if="gamesInProgress.length > 0">
+                    <div v-for="(game, index) in gamesInProgress" :key="index" class="game-listing">
+                        <p>
+                            {{ game.owner.firstName }}'s game
+                        </p>
+                        <button @click="joinGame(game._id)">Join game</button>
+                    </div>
+                </div>
+                <div v-else>
+                    {{ gamesInProgressMessage }}
+                </div>
             </div>
-        </div>
 
-        <div style="border: 1px solid black">
-            <h2>Mes victoires</h2>
-            <p>Vous avez remporté {{ userWins }} partie(s).</p>
-        </div>
-        
+            <div class="section-dash">
+                <h2>Winnings</h2>
+                <p>You've won {{ userWins }} game(s).</p>
+            </div>
 
-        <div style="border: 1px solid black">
-            <h2>Mes parties jouées</h2>
-            <p>Vous avez joué à {{ userPlayedGames }} partie(s).</p>
+
+            <div class="section-dash">
+                <h2>History</h2>
+                <p>You've played {{ userPlayedGames }} game(s).</p>
+            </div>
+
         </div>
         <!-- <div v-if="isAuthenticated">
             <router-link to="/profile">Voir mon profil</router-link>
@@ -64,12 +70,12 @@
 import jwtDecode from 'jwt-decode';
 import NavBar from './NavBar.vue';
 import axios from 'axios';
-import {loadStripe} from '@stripe/stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
 
 export default {
-    components : 
+    components:
     {
         NavBar
     },
@@ -80,7 +86,7 @@ export default {
             firstName: '',
             lastName: '',
             date_of_birth: '',
-            status : '',
+            status: '',
             myGame: null,
             myGameMessage: '',
             gamesInProgress: [],
@@ -100,52 +106,57 @@ export default {
             }
         }
         const headers = {
-        'Authorization': 'Bearer ' + token
+            'Authorization': 'Bearer ' + token
         };
         try {
-            const response = await axios.get(`${process.env.VUE_APP_API_URL}/api/v1/users/me`, {headers});
+            const response = await axios.get(`${process.env.VUE_APP_API_URL}/api/v1/users/me`, { headers });
             this.firstName = response.data.data.user.firstName;
             this.lastName = response.data.data.user.lastName;
             this.date_of_birth = response.data.data.user.date_of_birth;
             this.status = response.data.data.user.status;
-        //console.log(response);
+            //console.log(response);
         } catch (error) {
-        console.error(error);
-            alert('Erreur lors de la récupération des informations du profil');
+            console.error(error);
+            toast('Erreur lors de la récupération des informations du profil', {
+                autoClose: 2000,
+            });
         }
         this.getMyGame();
         this.getGamesInProgress();
         this.getUserWins();
         this.getUserPlayedGames();
     },
-    methods : {
+    methods: {
+        truncateId(id) {
+            return id.substr(0, 7);
+        },
         async goPremium() {
             try {
-            const headers = {
-                'Authorization': 'Bearer ' + localStorage.getItem('token')
-            };
-            const response = await axios.post(`${process.env.VUE_APP_API_URL}/api/v1/paiment/checkout-session`, {}, {headers});
-            const session = response.data.session;
+                const headers = {
+                    'Authorization': 'Bearer ' + localStorage.getItem('token')
+                };
+                const response = await axios.post(`${process.env.VUE_APP_API_URL}/api/v1/paiment/checkout-session`, {}, { headers });
+                const session = response.data.session;
 
-            // Redirige vers la page de paiement Stripe
-            const stripe = await loadStripe(process.env.VUE_APP_STRIPE_PUBLIC_KEY);  
-            console.log(stripe);
-            stripe.redirectToCheckout({sessionId: session.id})
-                .then((result) => {
-                    if (result.error) {
-                        // Si redirectToCheckout échoue en raison d'une erreur (par exemple, parce que le réseau est en panne),
-                        // l'affiche dans le bloc catch.
-                        console.error(result.error.message);
-                        this.$router.push('/paiement-fail');
-                    }
-                })
+                // Redirige vers la page de paiement Stripe
+                const stripe = await loadStripe(process.env.VUE_APP_STRIPE_PUBLIC_KEY);
+                console.log(stripe);
+                stripe.redirectToCheckout({ sessionId: session.id })
+                    .then((result) => {
+                        if (result.error) {
+                            // Si redirectToCheckout échoue en raison d'une erreur (par exemple, parce que le réseau est en panne),
+                            // l'affiche dans le bloc catch.
+                            console.error(result.error.message);
+                            this.$router.push('/paiement-fail');
+                        }
+                    })
             } catch (error) {
                 console.error(error);
                 // alert('Erreur lors de l\'initialisation du paiement');
 
                 toast("Erreur lors de l'initialisation du paiement", {
-                autoClose: 2000,
-            });
+                    autoClose: 2000,
+                });
             }
         },
         async getMyGame() {
@@ -153,9 +164,9 @@ export default {
                 const headers = {
                     'Authorization': 'Bearer ' + localStorage.getItem('token')
                 };
-                const response = await axios.get(`${process.env.VUE_APP_API_URL}/api/v1/games/getMyGame`, {headers});
+                const response = await axios.get(`${process.env.VUE_APP_API_URL}/api/v1/games/getMyGame`, { headers });
                 console.log(response);
-                if(response.data.game) {
+                if (response.data.game) {
                     this.myGame = response.data.game;
                     this.myGameMessage = "";
                     console.log(response);
@@ -166,7 +177,7 @@ export default {
             } catch (error) {
                 console.error(error);
                 //alert('Erreur lors de la récupération de ma partie');
-                toast("Problème lors de la récupération de ma partie en cours..", {
+                toast(error, {
                     autoClose: 2000,
                 });
             }
@@ -176,21 +187,19 @@ export default {
                 const headers = {
                     'Authorization': 'Bearer ' + localStorage.getItem('token')
                 };
-                const response = await axios.get(`${process.env.VUE_APP_API_URL}/api/v1/games/getGamesInProgress`, {headers});
-               
-                if(response.data.games.length === [])
-                {
+                const response = await axios.get(`${process.env.VUE_APP_API_URL}/api/v1/games/getGamesInProgress`, { headers });
+
+                if (response.data.games.length !== []) {
                     this.gamesInProgress = response.data.games;
                 }
-                else
-                {   
+                else {
                     console.log("aucune game");
                     this.gamesInProgressMessage = "Aucune Game en cours";
                 }
             } catch (error) {
                 console.error(error);
                 //alert('Erreur lors de la récupération des parties en attente');
-                toast("Problème lors de la récupération des parties en cours..", {
+                toast(error, {
                     autoClose: 2000,
                 });
             }
@@ -200,27 +209,27 @@ export default {
                 const headers = {
                     'Authorization': 'Bearer ' + localStorage.getItem('token')
                 };
-                const response = await axios.get(`${process.env.VUE_APP_API_URL}/api/v1/games/countUserWins`, {headers});
+                const response = await axios.get(`${process.env.VUE_APP_API_URL}/api/v1/games/countUserWins`, { headers });
                 this.userWins = response.data.userWins;
             } catch (error) {
                 console.error(error);
                 //alert('Erreur lors de la récupération du nombre de victoires');
-                toast("Erreur lors de la récupération du nombre de victoires", {
+                toast(error, {
                     autoClose: 2000,
                 });
             }
         },
-           async getUserPlayedGames() {
+        async getUserPlayedGames() {
             try {
                 const headers = {
                     'Authorization': 'Bearer ' + localStorage.getItem('token')
                 };
-                const response = await axios.get(`${process.env.VUE_APP_API_URL}/api/v1/games/countUserPlayedGames`, {headers});
+                const response = await axios.get(`${process.env.VUE_APP_API_URL}/api/v1/games/countUserPlayedGames`, { headers });
                 this.userPlayedGames = response.data.userPlayedGames;
             } catch (error) {
                 console.error(error);
                 //alert('Erreur lors de la récupération du nombre de parties jouées');
-                toast("Problème lors de la récupération du nombre total de parties jouées ..", {
+                toast(error, {
                     autoClose: 2000,
                 });
             }
@@ -230,13 +239,13 @@ export default {
                 const headers = {
                     'Authorization': 'Bearer ' + localStorage.getItem('token')
                 };
-                const response = await axios.post(`${process.env.VUE_APP_API_URL}/api/v1/games`, {}, {headers});
+                const response = await axios.post(`${process.env.VUE_APP_API_URL}/api/v1/games`, {}, { headers });
                 // Si la requête est réussie, redirigez vers la nouvelle page de jeu avec l'ID de la partie retourné par l'API
-                if(response.status === 200) {
+                if (response.status === 200) {
                     this.$router.push(`/game/${response.data.game._id}`);
-                } 
-                else if(response.status === 400) {
-                    toast("Vous avez atteint la limite des parties créées. Passez en Premium pour en créer de nouvelles", {
+                }
+                else if (response.status === 400) {
+                    toast("cannot create game", {
                         autoClose: 2000,
                     });
                 }
@@ -246,7 +255,7 @@ export default {
             } catch (error) {
                 console.error(error);
                 // Si la requête échoue, affichez un toast avec le message d'erreur
-                toast("Problème lors de la création d'une nouvelle partie", {
+                toast("Game already in progress", {
                     autoClose: 2000,
                 });
             }
@@ -256,18 +265,18 @@ export default {
                 const headers = {
                     'Authorization': 'Bearer ' + localStorage.getItem('token')
                 };
-                const response = await axios.patch(`${process.env.VUE_APP_API_URL}/api/v1/users/joinGame/${gameId}`, {}, {headers});
-                if(response.status === 200) {
+                const response = await axios.patch(`${process.env.VUE_APP_API_URL}/api/v1/users/joingame/${gameId}`, {}, { headers });
+                if (response.status === 200) {
                     this.$router.push(`/game/${gameId}`);
                 }
-            } 
+            }
             catch (error) {
                 if (error.response && error.response.status === 400) {
                     // Afficher le message d'erreur provenant du serveur
                     toast(error.response.data.message, {
                         autoClose: 2000,
                     });
-                } 
+                }
                 else {
                     toast("Erreur serveur", {
                         autoClose: 2000,
@@ -279,3 +288,181 @@ export default {
     }
 }
 </script>
+<style>
+h1 {
+    text-align: left;
+    margin-left: 20px;
+}
+
+.create-game {
+    margin: 20px 0;
+    display: flex;
+    justify-content: flex;
+    padding: 2em;
+}
+
+.create-game button {
+    background-color: rgb(240, 106, 53);
+    border: none;
+    border-radius: 5px;
+    padding: 10px 20px;
+    color: white;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.create-game button:hover {
+    background-color: rgb(240, 106, 53, 0.8);
+    opacity: .8;
+}
+
+.sections {
+    display: flex;
+    justify-content: space-evenly;
+    flex-wrap: wrap;
+    margin: auto;
+    gap: 20px;
+}
+
+.admin-link {
+    margin: 0 30px;
+    display: flex;
+    justify-content: flex-start;
+}
+
+.admin-link a {
+    text-decoration: none;
+    background-color: black;
+    padding: 10px 20px;
+    border-radius: 5px;
+    color: white;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.sections .section-dash {
+    width: 300px;
+    height: 300px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 16px;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 1em;
+}
+
+.payment {
+    display: flex;
+    margin: 20px 0;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 0 0 0 2em;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.payment button {
+    background-color: rgb(240, 106, 53);
+    border: none;
+    border-radius: 5px;
+    padding: 10px 20px;
+    color: white;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.payment button:hover {
+    background-color: rgb(240, 106, 53);
+    opacity: 0.8;
+}
+
+.games-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: scroll;
+    padding-right: 10px;
+}
+
+.games-list::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.games-list::-webkit-scrollbar-track {
+    border-radius: 10px;
+    background-color: #F5F5F5;
+}
+
+.games-list::-webkit-scrollbar-thumb {
+    border-radius: 10px;
+    background-color: #F90;
+    background-image: -webkit-linear-gradient(45deg, rgba(255, 255, 255, .2) 25%, transparent 25%,
+            transparent 50%, rgba(255, 255, 255, .2) 50%,
+            rgba(255, 255, 255, .2) 75%, transparent 75%,
+            transparent)
+}
+
+.games-list::-webkit-scrollbar-thumb:hover {
+    background: #f7791f;
+}
+
+.game-listing {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 30px;
+}
+
+.game-listing p {
+    font-size: 18px;
+    font-weight: bold;
+    margin: 0;
+}
+
+.game-listing button {
+    background-color: rgb(240, 106, 53);
+    border: none;
+    border-radius: 5px;
+    padding: 10px 20px;
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.game-listing button:hover {
+    background-color: rgb(240, 106, 53);
+    opacity: 0.8;
+}
+
+.mygames-listing {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 30px;
+    background-color: white;
+    padding: 10px;
+    border-radius: 10px;
+    width: 100%;
+}
+
+.mygames-listing p {
+    font-size: 18px;
+    font-weight: bold;
+    margin: 0;
+}
+
+.mygames-listing a {
+    text-decoration: none;
+    color: orangered;
+}
+</style>
