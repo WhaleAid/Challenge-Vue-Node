@@ -14,10 +14,15 @@
             <router-link to="/admin">Section administrateur</router-link>
         </div>
 
+        <!-- create game  -->
+        <div>
+          <button @click="createGame">Créer une partie</button>
+        </div>
+
         <div style="border: 1px solid black">
             <div v-if="myGame">
-                <div>{{ myGame }}</div> 
-                <p>game</p>
+                <div>ID de ma Game {{ myGame._id }}</div> 
+                <p>Ma partie en cours <router-link :to="`/game/${myGame._id}`">Aller à la partie</router-link> </p>
             </div>
 
             <div v-else>
@@ -26,11 +31,11 @@
         </div>
 
         <div style="border: 1px solid black">
+            <h2>Toutes les parties en cours</h2>
             <div v-if="gamesInProgress.length > 0">
-            <h2>Parties en cours</h2>
-            <div v-for="(game, index) in gamesInProgress" :key="index">
-                {{ game }} <!-- Vous pouvez ajouter des détails supplémentaires ici. -->
-            </div>
+                <div v-for="(game, index) in gamesInProgress" :key="index">
+                    {{ game._id }} 
+                </div>
             </div>
             <div v-else>
                 {{ gamesInProgressMessage }}
@@ -135,7 +140,11 @@ export default {
                 })
             } catch (error) {
                 console.error(error);
-                alert('Erreur lors de l\'initialisation du paiement');
+                // alert('Erreur lors de l\'initialisation du paiement');
+
+                toast("Erreur lors de l'initialisation du paiement", {
+                autoClose: 2000,
+            });
             }
         },
         async getMyGame() {
@@ -157,8 +166,8 @@ export default {
                 console.error(error);
                 //alert('Erreur lors de la récupération de ma partie');
                 toast("Problème lors de la récupération de ma partie en cours..", {
-                autoClose: 2000,
-            });
+                    autoClose: 2000,
+                });
             }
         },
         async getGamesInProgress() {
@@ -214,7 +223,33 @@ export default {
                     autoClose: 2000,
                 });
             }
+        },
+        async createGame() {
+        try {
+            const headers = {
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+            };
+            const response = await axios.post(`${process.env.VUE_APP_API_URL}/api/v1/games`, {}, {headers});
+            // Si la requête est réussie, redirigez vers la nouvelle page de jeu avec l'ID de la partie retourné par l'API
+            if(response.status === 200) {
+                this.$router.push(`/game/${response.data.game._id}`);
+            } 
+            else if(response.status === 400) {
+                toast("Vous avez atteint la limite des parties créées. Passez en Premium pour en créer de nouvelles", {
+                    autoClose: 2000,
+                });
+            }
+            else {
+                throw new Error();
+            }
+        } catch (error) {
+            console.error(error);
+            // Si la requête échoue, affichez un toast avec le message d'erreur
+            toast("Problème lors de la création d'une nouvelle partie", {
+                autoClose: 2000,
+            });
         }
+    }
     }
 }
 </script>
