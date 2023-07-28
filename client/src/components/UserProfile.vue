@@ -76,7 +76,7 @@ export default {
           if (response.status === 200) {
             // alert('Profil mis à jour avec succès');
             toast("Wow so easy !", {
-                autoClose: 1000,
+                autoClose: 3000,
             });
             //this.$router.push('/home');
           }

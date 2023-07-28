@@ -29,7 +29,7 @@ export default {
         localStorage.removeItem('token');
         // Redirect to login page
          toast("Successfully logged out !", {
-                autoClose: 1000,
+                autoClose: 3000,
             });
         this.$router.push('/');
       }
