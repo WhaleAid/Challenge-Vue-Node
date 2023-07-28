@@ -1,56 +1,58 @@
 <template>
     <div>
-        <NavBar/>
-        <h1>Bienvenue sur la page d'accueil !</h1>
-        <div v-if="isAdmin==='false'">
-            Utilisateur : {{status}}
+        <NavBar />
+        <h1>Welcome {{ firstName }} {{ lastName }}</h1>
+        <div v-if="isAdmin === 'false'">
+            Utilisateur : {{ status }}
         </div>
 
-        <div v-if="status === 'base' && isAdmin===false">
+        <div v-if="status === 'base' && isAdmin === false">
             <button @click="goPremium">Passer premium</button>
         </div>
-        
-       <div v-if="isAdmin">
+
+        <div v-if="isAdmin">
             <router-link to="/admin">Section administrateur</router-link>
         </div>
 
-        <!-- create game  -->
-        <div>
-          <button @click="createGame">Créer une partie</button>
+        <div class="create-game">
+            <button @click="createGame">Créer une partie <font-awesome-icon icon="fa-solid fa-plus" /></button>
         </div>
 
-        <div style="border: 1px solid black">
-            <div v-if="myGame">
-                <div>ID de ma Game {{ myGame._id }}</div> 
-                <p>Ma partie en cours <router-link :to="`/game/${myGame._id}`">Aller à la partie</router-link> </p>
-            </div>
+        <div class="sections">
+            <div class="section-dash">
+                <div v-if="myGame">
+                    <div>My game's ID {{ myGame._id }}</div>
+                    <p>Active game <router-link :to="`/game/${myGame._id}`">Enter game</router-link> </p>
+                </div>
 
-            <div v-else>
-                {{ myGameMessage }}
-            </div>
-        </div>
-
-        <div style="border: 1px solid black">
-            <h2>Toutes les parties en cours</h2>
-            <div v-if="gamesInProgress.length > 0">
-                <div v-for="(game, index) in gamesInProgress" :key="index">
-                    {{ game._id }} 
+                <div v-else>
+                    {{ myGameMessage }}
                 </div>
             </div>
-            <div v-else>
-                {{ gamesInProgressMessage }}
+
+            <div class="section-dash">
+                <h2>Active games</h2>
+                <div v-if="gamesInProgress.length > 0">
+                    <div v-for="(game, index) in gamesInProgress" :key="index">
+                        {{ game._id }}
+                    </div>
+                </div>
+                <div v-else>
+                    {{ gamesInProgressMessage }}
+                </div>
             </div>
-        </div>
 
-        <div style="border: 1px solid black">
-            <h2>Mes victoires</h2>
-            <p>Vous avez remporté {{ userWins }} partie(s).</p>
-        </div>
-        
+            <div class="section-dash">
+                <h2>Winnings</h2>
+                <p>You've won {{ userWins }} game(s).</p>
+            </div>
 
-        <div style="border: 1px solid black">
-            <h2>Mes parties jouées</h2>
-            <p>Vous avez joué à {{ userPlayedGames }} partie(s).</p>
+
+            <div class="section-dash">
+                <h2>History</h2>
+                <p>You've played {{ userPlayedGames }} game(s).</p>
+            </div>
+
         </div>
         <!-- <div v-if="isAuthenticated">
             <router-link to="/profile">Voir mon profil</router-link>
@@ -63,12 +65,12 @@
 import jwtDecode from 'jwt-decode';
 import NavBar from './NavBar.vue';
 import axios from 'axios';
-import {loadStripe} from '@stripe/stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
 
 export default {
-    components : 
+    components:
     {
         NavBar
     },
@@ -79,7 +81,7 @@ export default {
             firstName: '',
             lastName: '',
             date_of_birth: '',
-            status : '',
+            status: '',
             myGame: null,
             myGameMessage: '',
             gamesInProgress: [],
@@ -99,17 +101,17 @@ export default {
             }
         }
         const headers = {
-        'Authorization': 'Bearer ' + token
+            'Authorization': 'Bearer ' + token
         };
         try {
-            const response = await axios.get(`${process.env.VUE_APP_API_URL}/api/v1/users/me`, {headers});
+            const response = await axios.get(`${process.env.VUE_APP_API_URL}/api/v1/users/me`, { headers });
             this.firstName = response.data.data.user.firstName;
             this.lastName = response.data.data.user.lastName;
             this.date_of_birth = response.data.data.user.date_of_birth;
             this.status = response.data.data.user.status;
-        //console.log(response);
+            //console.log(response);
         } catch (error) {
-        console.error(error);
+            console.error(error);
             alert('Erreur lors de la récupération des informations du profil');
         }
         this.getMyGame();
@@ -117,34 +119,34 @@ export default {
         this.getUserWins();
         this.getUserPlayedGames();
     },
-    methods : {
+    methods: {
         async goPremium() {
             try {
-            const headers = {
-                'Authorization': 'Bearer ' + localStorage.getItem('token')
-            };
-            const response = await axios.post(`${process.env.VUE_APP_API_URL}/api/v1/paiment/checkout-session`, {}, {headers});
-            const session = response.data.session;
+                const headers = {
+                    'Authorization': 'Bearer ' + localStorage.getItem('token')
+                };
+                const response = await axios.post(`${process.env.VUE_APP_API_URL}/api/v1/paiment/checkout-session`, {}, { headers });
+                const session = response.data.session;
 
-            // Redirige vers la page de paiement Stripe
-            const stripe = await loadStripe(process.env.VUE_APP_STRIPE_PUBLIC_KEY);  
-            console.log(stripe);
-            stripe.redirectToCheckout({sessionId: session.id})
-                .then((result) => {
-                    if (result.error) {
-                        // Si redirectToCheckout échoue en raison d'une erreur (par exemple, parce que le réseau est en panne),
-                        // l'affiche dans le bloc catch.
-                        console.error(result.error.message);
-                        this.$router.push('/paiement-fail');
-                    }
-                })
+                // Redirige vers la page de paiement Stripe
+                const stripe = await loadStripe(process.env.VUE_APP_STRIPE_PUBLIC_KEY);
+                console.log(stripe);
+                stripe.redirectToCheckout({ sessionId: session.id })
+                    .then((result) => {
+                        if (result.error) {
+                            // Si redirectToCheckout échoue en raison d'une erreur (par exemple, parce que le réseau est en panne),
+                            // l'affiche dans le bloc catch.
+                            console.error(result.error.message);
+                            this.$router.push('/paiement-fail');
+                        }
+                    })
             } catch (error) {
                 console.error(error);
                 // alert('Erreur lors de l\'initialisation du paiement');
 
                 toast("Erreur lors de l'initialisation du paiement", {
-                autoClose: 2000,
-            });
+                    autoClose: 2000,
+                });
             }
         },
         async getMyGame() {
@@ -152,9 +154,9 @@ export default {
                 const headers = {
                     'Authorization': 'Bearer ' + localStorage.getItem('token')
                 };
-                const response = await axios.get(`${process.env.VUE_APP_API_URL}/api/v1/games/getMyGame`, {headers});
+                const response = await axios.get(`${process.env.VUE_APP_API_URL}/api/v1/games/getMyGame`, { headers });
                 console.log(response);
-                if(response.data.game) {
+                if (response.data.game) {
                     this.myGame = response.data.game;
                     this.myGameMessage = "";
                     console.log(response);
@@ -175,14 +177,12 @@ export default {
                 const headers = {
                     'Authorization': 'Bearer ' + localStorage.getItem('token')
                 };
-                const response = await axios.get(`${process.env.VUE_APP_API_URL}/api/v1/games/getGamesInProgress`, {headers});
-               
-                if(response.data.games.length === [])
-                {
+                const response = await axios.get(`${process.env.VUE_APP_API_URL}/api/v1/games/getGamesInProgress`, { headers });
+
+                if (response.data.games.length === []) {
                     this.gamesInProgress = response.data.games;
                 }
-                else
-                {   
+                else {
                     console.log("aucune game");
                     this.gamesInProgressMessage = "Aucune Game en cours";
                 }
@@ -199,7 +199,7 @@ export default {
                 const headers = {
                     'Authorization': 'Bearer ' + localStorage.getItem('token')
                 };
-                const response = await axios.get(`${process.env.VUE_APP_API_URL}/api/v1/games/countUserWins`, {headers});
+                const response = await axios.get(`${process.env.VUE_APP_API_URL}/api/v1/games/countUserWins`, { headers });
                 this.userWins = response.data.userWins;
             } catch (error) {
                 console.error(error);
@@ -209,12 +209,12 @@ export default {
                 });
             }
         },
-           async getUserPlayedGames() {
+        async getUserPlayedGames() {
             try {
                 const headers = {
                     'Authorization': 'Bearer ' + localStorage.getItem('token')
                 };
-                const response = await axios.get(`${process.env.VUE_APP_API_URL}/api/v1/games/countUserPlayedGames`, {headers});
+                const response = await axios.get(`${process.env.VUE_APP_API_URL}/api/v1/games/countUserPlayedGames`, { headers });
                 this.userPlayedGames = response.data.userPlayedGames;
             } catch (error) {
                 console.error(error);
@@ -225,31 +225,79 @@ export default {
             }
         },
         async createGame() {
-        try {
-            const headers = {
-                'Authorization': 'Bearer ' + localStorage.getItem('token')
-            };
-            const response = await axios.post(`${process.env.VUE_APP_API_URL}/api/v1/games`, {}, {headers});
-            // Si la requête est réussie, redirigez vers la nouvelle page de jeu avec l'ID de la partie retourné par l'API
-            if(response.status === 200) {
-                this.$router.push(`/game/${response.data.game._id}`);
-            } 
-            else if(response.status === 400) {
-                toast("Vous avez atteint la limite des parties créées. Passez en Premium pour en créer de nouvelles", {
+            try {
+                const headers = {
+                    'Authorization': 'Bearer ' + localStorage.getItem('token')
+                };
+                const response = await axios.post(`${process.env.VUE_APP_API_URL}/api/v1/games`, {}, { headers });
+                // Si la requête est réussie, redirigez vers la nouvelle page de jeu avec l'ID de la partie retourné par l'API
+                console.log(response)
+                if (response.status === 200) {
+                    this.$router.push(`/game/${response.data._id}`);
+                }
+                else if (response.status === 400) {
+                    toast("Vous avez atteint la limite des parties créées. Passez en Premium pour en créer de nouvelles", {
+                        autoClose: 2000,
+                    });
+                }
+                else {
+                    throw new Error();
+                }
+            } catch (error) {
+                console.error(error);
+                // Si la requête échoue, affichez un toast avec le message d'erreur
+                toast("Problème lors de la création d'une nouvelle partie", {
                     autoClose: 2000,
                 });
             }
-            else {
-                throw new Error();
-            }
-        } catch (error) {
-            console.error(error);
-            // Si la requête échoue, affichez un toast avec le message d'erreur
-            toast("Problème lors de la création d'une nouvelle partie", {
-                autoClose: 2000,
-            });
         }
-    }
     }
 }
 </script>
+<style>
+h1 {
+    text-align: left;
+    margin-left: 20px;
+}
+
+.create-game {
+    margin: 20px 0;
+    display: flex;
+    justify-content: flex-start;
+    padding: 2em;
+}
+
+.create-game button {
+    background-color: rgb(240, 106, 53);
+    border: none;
+    border-radius: 5px;
+    padding: 10px 20px;
+    color: white;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.sections {
+    display: flex;
+    justify-content: space-evenly;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.sections .section-dash {
+    width: 300px;
+    height: 200px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 16px;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 1em;
+}
+</style>

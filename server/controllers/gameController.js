@@ -102,7 +102,7 @@ const create = async (req, res, next) => {
         discard.push(currentCard)
 
         const game = await GameMg.create({
-            players: [userId, ...players],
+            players: [userId, ...(players || [])],
             owner: userId,
             deck: deck.filter(
                 (card) => card._id.toString() !== currentCard._id.toString()

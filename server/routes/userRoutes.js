@@ -28,7 +28,7 @@ router
 .put(authController.protect, userController.updateMyStatus);
 
 router
-    .route('/joinGame/:id')
+    .route('/joingame/:id')
     .patch(authController.protect, userController.joinGame)
 
     router

@@ -1,4 +1,5 @@
 <template>
+    <NavBar/>
     <div class="game-message" v-if="game.status === 'waiting'">
         <svg width="200px" height="200px" viewBox="0 0 1024 1024" class="icon" version="1.1"
             xmlns="http://www.w3.org/2000/svg">
@@ -159,6 +160,7 @@
 import axios from 'axios';
 import CardComponent from './cards/CardComponent.vue';
 import CardBack from './cards/CardBack.vue';
+import NavBar from './NavBar.vue'
 import io from 'socket.io-client';
 import { toast } from 'vue3-toastify';
 import { Modal } from 'usemodal-vue3';
@@ -181,7 +183,8 @@ export default {
     components: {
         CardComponent,
         CardBack,
-        Modal
+        Modal,
+        NavBar
     },
     data() {
         return {

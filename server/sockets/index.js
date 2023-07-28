@@ -178,6 +178,9 @@ module.exports = (io) => {
             if (!game) {
                 return next(createError(404, 'game not found'))
             }
+            if (game.players.length < 2) {
+                return next(createError(400, 'not enough players'))
+            }
             if (game.owner.toString() !== userId.toString()) {
                 return next(
                     createError(403, 'only the owner can start the game')
