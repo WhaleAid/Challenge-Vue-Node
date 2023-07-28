@@ -35,6 +35,7 @@
                 <div v-if="gamesInProgress.length > 0">
                     <div v-for="(game, index) in gamesInProgress" :key="index">
                         {{ game._id }}
+                    <button @click="joinGame(game._id)">Rejoindre la partie</button>
                     </div>
                 </div>
                 <div v-else>
@@ -229,13 +230,12 @@ export default {
                 const headers = {
                     'Authorization': 'Bearer ' + localStorage.getItem('token')
                 };
-                const response = await axios.post(`${process.env.VUE_APP_API_URL}/api/v1/games`, {}, { headers });
+                const response = await axios.post(`${process.env.VUE_APP_API_URL}/api/v1/games`, {}, {headers});
                 // Si la requête est réussie, redirigez vers la nouvelle page de jeu avec l'ID de la partie retourné par l'API
-                console.log(response)
-                if (response.status === 200) {
-                    this.$router.push(`/game/${response.data._id}`);
-                }
-                else if (response.status === 400) {
+                if(response.status === 200) {
+                    this.$router.push(`/game/${response.data.game._id}`);
+                } 
+                else if(response.status === 400) {
                     toast("Vous avez atteint la limite des parties créées. Passez en Premium pour en créer de nouvelles", {
                         autoClose: 2000,
                     });
@@ -250,7 +250,32 @@ export default {
                     autoClose: 2000,
                 });
             }
-        }
+        },
+        async joinGame(gameId) {
+            try {
+                const headers = {
+                    'Authorization': 'Bearer ' + localStorage.getItem('token')
+                };
+                const response = await axios.patch(`${process.env.VUE_APP_API_URL}/api/v1/users/joinGame/${gameId}`, {}, {headers});
+                if(response.status === 200) {
+                    this.$router.push(`/game/${gameId}`);
+                }
+            } 
+            catch (error) {
+                if (error.response && error.response.status === 400) {
+                    // Afficher le message d'erreur provenant du serveur
+                    toast(error.response.data.message, {
+                        autoClose: 2000,
+                    });
+                } 
+                else {
+                    toast("Erreur serveur", {
+                        autoClose: 2000,
+                    });
+                }
+                console.error(error);
+            }
+        },
     }
 }
 </script>
