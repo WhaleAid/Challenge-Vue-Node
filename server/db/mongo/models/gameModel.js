@@ -52,6 +52,10 @@ let gameSchema = new Schema(
             type: Schema.Types.ObjectId,
             ref: 'User',
         },
+        timer: {
+            type: Number,
+            default: 60,
+        }
     },
     {
         timestamps: true,

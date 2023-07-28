@@ -1,5 +1,4 @@
 <template>
-    <NavBar/>
     <div class="game-message" v-if="game.status === 'waiting'">
         <svg width="200px" height="200px" viewBox="0 0 1024 1024" class="icon" version="1.1"
             xmlns="http://www.w3.org/2000/svg">
@@ -54,7 +53,19 @@
         </svg>
 
         <h1>This game has ended</h1>
+
+        <button class="home-btn" @click="() => {
+            this.$router.push({ name: 'HomePage' })
+        }">
+            Home
+        </button>
     </div>
+    <Modal modalClass="modal-colors" title='Warning' mask v-model:visible="wonVisible" offsetTop="25%" :okButton="{
+        text: 'Home',
+        onClick: () => this.$router.push({ name: 'HomePage' })
+    }">
+        <h2>Congratulations you've won !!</h2>
+    </Modal>
     <div class="game-container" v-if="game.status === 'started'">
         <div class="game-board">
             <div class="opponents">
@@ -113,6 +124,15 @@
                     </button>
                 </div>
             </Modal>
+            <Modal modalClass="modal-colors" title='Warning' mask v-model:visible="leaveVisible" offsetTop="25%" :okButton="{
+            }">
+                <h2>
+                    Leaving the game before it's over will result is a warning, 3 warnings and you'll be banned
+                </h2>
+                <button @click="leaveGame">
+                    Leave
+                </button>
+            </Modal>
             <div class="game-table">
                 <div class="game-table-wrapper">
                     <div class="card current" v-if="game.currentCard">
@@ -125,21 +145,14 @@
                         <CardBack />
                     </div>
                 </div>
-                <div class="end-btn">
+                <div class="end-btn" @click="leave">
                     <button>
                         <font-awesome-icon icon="fa-solid fa-right-from-bracket" />
                     </button>
                 </div>
-                <p class="timer">
-                    {{ $store.state.time }}
-                </p>
             </div>
             <div class="bottom-player">
                 <div class="player" v-if="players[0]">
-                    <div class="strikes-container" v-if="players[0]?.hand?.inactive">
-                        <font-awesome-icon icon="fa-solid fa-ban" />
-                        {{ players[0]?.hand?.inactive }} Strikes / 3
-                    </div>
                     <div class="player-name" v-if="players[0].username">
                         {{ players[0].username }}
                         <font-awesome-icon icon="fa-solid fa-user" v-show="isMyTurn(players[0]._id, game.turn)" />
@@ -160,31 +173,15 @@
 import axios from 'axios';
 import CardComponent from './cards/CardComponent.vue';
 import CardBack from './cards/CardBack.vue';
-import NavBar from './NavBar.vue'
 import io from 'socket.io-client';
 import { toast } from 'vue3-toastify';
 import { Modal } from 'usemodal-vue3';
 
 export default {
-    computed: {
-        time() {
-            return this.$store.state.time;
-        }
-    },
-    watch: {
-        time(value) {
-            if (value === 0) {
-                this.$store.commit('stopTimer');
-                this.emitDraw(true)
-                this.$store.commit('resetTime');
-            }
-        }
-    },
     components: {
         CardComponent,
         CardBack,
-        Modal,
-        NavBar
+        Modal
     },
     data() {
         return {
@@ -195,19 +192,21 @@ export default {
             socket: null,
             userId: null,
             isVisible: false,
+            leaveVisible: false,
             selectedCard: null,
-            indexes: [{}]
+            indexes: [{}],
+            wonVisible: false,
         }
     },
     async created() {
         this.userId = JSON.parse(localStorage.getItem('user'))._id;
         await this.getGame();
-        this.$store.dispatch('startTimer');
         this.socket = io(process.env.VUE_APP_API_URL);
         this.socket.on('connection', () => {
             this.getGame()
         })
         this.socket.on('startGameResponse', (response) => {
+            console.log("startGameResponse", response)
             if (response.success) {
                 this.getGame();
             } else {
@@ -219,7 +218,6 @@ export default {
         this.socket.on('playCardResponse', (response) => {
             if (response.success) {
                 this.getGame();
-                this.$store.dispatch('startTimer');
             } else {
                 toast.error(response.message, {
                     autoClose: 3000,
@@ -235,9 +233,15 @@ export default {
                 });
             }
         })
-    },
-    beforeUnmount() {
-        this.$store.commit('stopTimer');
+        this.socket.on('leaveGameResponse', (response) => {
+            if (response.success) {
+                this.getGame();
+            } else {
+                toast.error(response.message, {
+                    autoClose: 3000,
+                });
+            }
+        })
     },
     methods: {
         async getGame() {
@@ -292,16 +296,11 @@ export default {
             this.isVisible = false;
             this.socket.emit('playCard', { gameId: this.game._id, playerId: this.userId, cardId: this.selectedCard, color });
         },
-        emitDraw(inactive) {
-            if (inactive) {
-                this.players.forEach(player => {
-                    if (this.isMyTurn(player._id, this.game.turn)) {
-                        this.socket.emit('drawCard', { playerId: player._id, gameId: this.game._id, inactive });
-                    }
-                })
-            } else {
-                this.socket.emit('drawCard', { playerId: this.userId, gameId: this.game._id });
+        emitDraw() {
+            if (this.game.status !== 'started') {
+                return;
             }
+            this.socket.emit('drawCard', { playerId: this.userId, gameId: this.game._id });
         },
         isMyTurn(playerId, turn) {
             const player = this.indexes.find(index => index.id === playerId);
@@ -314,7 +313,16 @@ export default {
         },
         startGame() {
             this.socket.emit('startGame', { gameId: this.game._id, playerId: this.userId });
+        },
+        leave() {
+            this.leaveVisible = true;
+        },
+        leaveGame() {
+            console.log("leaveGame")
+            this.socket.emit('leaveGame', { gameId: this.game._id, playerId: this.userId });
+            this.$router.push({ name: 'HomePage' });
         }
+
     }
 }
 </script>
@@ -404,6 +412,27 @@ export default {
     align-items: center;
     font-weight: 700;
     transform: translateY(-90px);
+}
+
+.home-btn {
+    position: absolute;
+    transform: translateY(200px);
+}
+
+.home-btn {
+    cursor: pointer;
+    background-color: #fe6368;
+    padding: 5px 20px;
+    border-radius: 15px;
+    border: 0px;
+    color: white;
+    box-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
+    transition: all 0.2s ease-in-out;
+}
+
+.home-btn:hover {
+    background-color: #fa121a;
+    transition: all 0.2s ease-in-out;
 }
 
 .strikes-container {

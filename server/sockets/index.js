@@ -132,7 +132,7 @@ module.exports = (io) => {
             }
         })
 
-        socket.on('drawCard', async ({ playerId, gameId, inactive }) => {
+        socket.on('drawCard', async ({ playerId, gameId }) => {
             const game = await GameMg.findById(gameId).populate(
                 'discard currentCard'
             )
@@ -148,14 +148,15 @@ module.exports = (io) => {
                 game.turn = (game.turn + 1) % game.players.length
                 await game.save()
 
-                if (inactive) {
-                    warning(playerId, gameId)
-                }
-
                 socket.emit('drawCardResponse', {
                     success: true,
                     message: 'Card drawn successfully',
                 })
+                socket.broadcast.emit('drawCardResponse', {
+                    success: true,
+                    message: 'Card drawn successfully',
+                })
+
             } catch (error) {
                 socket.emit('drawCardResponse', {
                     success: false,
@@ -237,14 +238,33 @@ module.exports = (io) => {
                     success: true,
                     message: 'Game started successfully',
                 })
-                
+
                 socket.broadcast.emit('startGameResponse', {
                     success: true,
                     message: 'Game started successfully',
                 })
-
             } catch (error) {
                 socket.emit('startGameResponse', {
+                    success: false,
+                    message: error.message,
+                })
+            }
+        })
+
+        socket.on('leaveGame', async ({ gameId, playerId }) => {
+            console.log('leaving game')
+            try {
+                await leaveGame(playerId, gameId)
+                socket.emit('leaveGameResponse', {
+                    success: true,
+                    message: 'left successfully',
+                })
+                socket.broadcast.emit('leaveGameResponse', {
+                    success: true,
+                    message: 'left successfully',
+                })
+            } catch (error) {
+                socket.emit('leaveGameResponse', {
                     success: false,
                     message: error.message,
                 })
@@ -268,7 +288,6 @@ async function reverseOrder(gameId) {
     game.direction =
         game.direction === 'clockwise' ? 'counterclockwise' : 'clockwise'
     game.players.reverse()
-    game.turn = game.players.length - game.turn + (1 % game.players.length)
     await game.save({ validateBeforeSave: false })
 }
 
@@ -354,16 +373,14 @@ async function endTurn(playerId, gameId) {
 
 async function endGame(playerId, gameId) {
     const game = await GameMg.findById(gameId)
+    game.status = 'ended'
+    game.winner = playerId
     game.players.map(async (player) => {
         await HandMg.findOneAndDelete({
             player: player,
             game: gameId,
         })
     })
-
-    game.status = 'ended'
-    game.winner = playerId
-
     await game.save()
 }
 
@@ -386,49 +403,37 @@ async function shuffle(gameId) {
     }
 }
 
-async function kickPlayer(playerId, gameId) {
-    try {
-        const user = await UserMg.findById(playerId)
-        const game = await GameMg.findById(gameId)
-        const hand = await HandMg.findOne({
-            player: playerId,
-            game: gameId,
-        })
-        game.players = game.players.filter(
-            (player) => player._id.toString() !== playerId
-        )
-        game.turn = (game.turn + 1) % game.players.length
-        game.deck = game.deck.concat(hand.cards)
-        game.deck.sort(() => Math.random() - 0.5)
-        user.games = user.games.filter(
-            (game) => game._id.toString() !== gameId.toString()
-        )
-        user.warnings += 1
-
-        if (game.players.length === 1) {
-            endGame(game.players[0], gameId)
-        }
-
-        await hand.findOneAndDelete({
-            player: playerId,
-            game: gameId,
-        })
-        await game.save()
-        await user.save({ validateBeforeSave: false })
-    } catch (error) {
-        console.log(error.message)
-        throw new Error('cannot kick player')
-    }
-}
-
-async function warning(playerId, gameId) {
+async function leaveGame(playerId, gameId) {
+    // try {
+    const user = await UserMg.findById(playerId)
+    const game = await GameMg.findById(gameId)
     const hand = await HandMg.findOne({
         player: playerId,
         game: gameId,
     })
-    hand.inactive += 1
-    if (hand.inactive === 3) {
-        await kickPlayer(playerId, gameId)
+    game.players = game.players.filter(
+        (player) => player._id.toString() !== playerId
+    )
+    game.turn = (game.turn + 1) % game.players.length
+    game.deck = game.deck.concat(hand.cards)
+    game.deck.sort(() => Math.random() - 0.5)
+    user.games = user.games.filter(
+        (game) => game._id.toString() !== gameId.toString()
+    )
+    user.warnings += 1
+
+    await HandMg.findOneAndDelete({
+        player: playerId,
+        game: gameId,
+    })
+
+    if (game.players.length === 1) {
+        endGame(game.players[0], gameId)
     }
-    await hand.save()
+    await game.save()
+    await user.save({ validateBeforeSave: false })
+    // } catch (error) {
+    //     console.log(error.message)
+    //     throw new Error('cannot kick player')
+    // }
 }

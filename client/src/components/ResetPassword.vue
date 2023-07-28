@@ -1,13 +1,14 @@
 <template>
+  <NavBar />
   <div class="reset-password-container">
-    <input v-model="user.password" type="password" placeholder="Nouveau mot de passe">
-    <input v-model="user.passwordConfirm" type="password" placeholder="Confirmez le nouveau mot de passe">
-    <button @click="resetPassword">Réinitialiser le mot de passe</button>
+    <input v-model="user.password" type="password" placeholder="New password">
+    <input v-model="user.passwordConfirm" type="password" placeholder="Confirm the new password">
+    <button @click="resetPassword">Reset password</button>
 
-    <!-- Ajoutez votre loader ici. Il sera affiché lorsque isLoading est true. -->
+    <!-- Add your loader here. It will be displayed when isLoading is true. -->
     <div v-if="isLoading">Loading...</div>
 
-    <!-- Message d'erreur ici -->
+    <!-- Error message here -->
     <div v-if="errorMessage">{{ errorMessage }}</div>
   </div>
 </template>
@@ -16,8 +17,12 @@
 import axios from 'axios';
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
+import NavBar from './NavBar.vue';
 
 export default {
+  components: {
+    NavBar,
+  },
   data() {
     return {
       user: {
@@ -38,8 +43,8 @@ export default {
           this.errorMessage = 'Votre mot de passe a été réinitialisé avec succès.';
           // Vous pouvez rediriger l'utilisateur vers la page de connexion ici
           toast("Mot de passe mis à jour avec succes", {
-                autoClose: 3000,
-            });
+            autoClose: 3000,
+          });
           this.$router.push('/');
         }
       } catch (error) {
@@ -53,10 +58,54 @@ export default {
 </script>
 
 <style scoped>
-.reset-password-container {
+body {
+  background: url('https://source.unsplash.com/random') no-repeat center center fixed;
+  -webkit-background-size: cover;
+  -moz-background-size: cover;
+  -o-background-size: cover;
+  background-size: cover;
+}
+
+.form-container {
+  width: 500px;
+  margin: auto;
+  margin-top: 30px;
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border-radius: 10px;
+  margin-bottom: 60px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  padding: 20px;
+  color: black;
+}
+
+form {
   display: flex;
   flex-direction: column;
-  align-items: start;
-  gap: 10px;
+}
+
+input,
+select,
+button {
+  margin: 10px 0;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: black;
+  border-radius: 10px;
+}
+
+button {
+  background: rgba(255, 145, 0, 0.3);
+  cursor: pointer;
+  transition: 0.3s ease;
+  border-radius: 10px;
+}
+
+button:hover {
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
 }
 </style>

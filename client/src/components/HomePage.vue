@@ -6,11 +6,11 @@
             Utilisateur : {{ status }}
         </div>
 
-        <div v-if="status === 'base' && isAdmin === false">
+        <div class="payment" v-if="status === 'base' && isAdmin === false">
             <button @click="goPremium">Passer premium</button>
         </div>
 
-        <div v-if="isAdmin">
+        <div class="admin-link" v-if="isAdmin">
             <router-link to="/admin">Section administrateur</router-link>
         </div>
 
@@ -20,9 +20,11 @@
 
         <div class="sections">
             <div class="section-dash">
-                <div v-if="myGame">
-                    <div>My game's ID {{ myGame._id }}</div>
-                    <p>Active game <router-link :to="`/game/${myGame._id}`">Enter game</router-link> </p>
+                <div class="mygames-listing" v-if="myGame">
+                    <div class="">Game is {{ myGame.status }}</div>
+                    <p>{{ truncateId(myGame._id) }} <router-link :to="`/game/${myGame._id}`">
+                            <font-awesome-icon icon="fa-solid fa-circle-chevron-right" />
+                        </router-link> </p>
                 </div>
 
                 <div v-else>
@@ -32,10 +34,12 @@
 
             <div class="section-dash">
                 <h2>Active games</h2>
-                <div v-if="gamesInProgress.length > 0">
-                    <div v-for="(game, index) in gamesInProgress" :key="index">
-                        {{ game._id }}
-                    <button @click="joinGame(game._id)">Rejoindre la partie</button>
+                <div class="games-list" v-if="gamesInProgress.length > 0">
+                    <div v-for="(game, index) in gamesInProgress" :key="index" class="game-listing">
+                        <p>
+                            {{ game.owner.firstName }}'s game
+                        </p>
+                        <button @click="joinGame(game._id)">Join game</button>
                     </div>
                 </div>
                 <div v-else>
@@ -113,7 +117,9 @@ export default {
             //console.log(response);
         } catch (error) {
             console.error(error);
-            alert('Erreur lors de la récupération des informations du profil');
+            toast('Erreur lors de la récupération des informations du profil', {
+                autoClose: 2000,
+            });
         }
         this.getMyGame();
         this.getGamesInProgress();
@@ -121,6 +127,9 @@ export default {
         this.getUserPlayedGames();
     },
     methods: {
+        truncateId(id) {
+            return id.substr(0, 7);
+        },
         async goPremium() {
             try {
                 const headers = {
@@ -168,7 +177,7 @@ export default {
             } catch (error) {
                 console.error(error);
                 //alert('Erreur lors de la récupération de ma partie');
-                toast("Problème lors de la récupération de ma partie en cours..", {
+                toast(error, {
                     autoClose: 2000,
                 });
             }
@@ -180,7 +189,7 @@ export default {
                 };
                 const response = await axios.get(`${process.env.VUE_APP_API_URL}/api/v1/games/getGamesInProgress`, { headers });
 
-                if (response.data.games.length === []) {
+                if (response.data.games.length !== []) {
                     this.gamesInProgress = response.data.games;
                 }
                 else {
@@ -190,7 +199,7 @@ export default {
             } catch (error) {
                 console.error(error);
                 //alert('Erreur lors de la récupération des parties en attente');
-                toast("Problème lors de la récupération des parties en cours..", {
+                toast(error, {
                     autoClose: 2000,
                 });
             }
@@ -205,7 +214,7 @@ export default {
             } catch (error) {
                 console.error(error);
                 //alert('Erreur lors de la récupération du nombre de victoires');
-                toast("Erreur lors de la récupération du nombre de victoires", {
+                toast(error, {
                     autoClose: 2000,
                 });
             }
@@ -220,7 +229,7 @@ export default {
             } catch (error) {
                 console.error(error);
                 //alert('Erreur lors de la récupération du nombre de parties jouées');
-                toast("Problème lors de la récupération du nombre total de parties jouées ..", {
+                toast(error, {
                     autoClose: 2000,
                 });
             }
@@ -230,13 +239,13 @@ export default {
                 const headers = {
                     'Authorization': 'Bearer ' + localStorage.getItem('token')
                 };
-                const response = await axios.post(`${process.env.VUE_APP_API_URL}/api/v1/games`, {}, {headers});
+                const response = await axios.post(`${process.env.VUE_APP_API_URL}/api/v1/games`, {}, { headers });
                 // Si la requête est réussie, redirigez vers la nouvelle page de jeu avec l'ID de la partie retourné par l'API
-                if(response.status === 200) {
+                if (response.status === 200) {
                     this.$router.push(`/game/${response.data.game._id}`);
-                } 
-                else if(response.status === 400) {
-                    toast("Vous avez atteint la limite des parties créées. Passez en Premium pour en créer de nouvelles", {
+                }
+                else if (response.status === 400) {
+                    toast("cannot create game", {
                         autoClose: 2000,
                     });
                 }
@@ -246,7 +255,7 @@ export default {
             } catch (error) {
                 console.error(error);
                 // Si la requête échoue, affichez un toast avec le message d'erreur
-                toast("Problème lors de la création d'une nouvelle partie", {
+                toast("Game already in progress", {
                     autoClose: 2000,
                 });
             }
@@ -256,18 +265,18 @@ export default {
                 const headers = {
                     'Authorization': 'Bearer ' + localStorage.getItem('token')
                 };
-                const response = await axios.patch(`${process.env.VUE_APP_API_URL}/api/v1/users/joinGame/${gameId}`, {}, {headers});
-                if(response.status === 200) {
+                const response = await axios.patch(`${process.env.VUE_APP_API_URL}/api/v1/users/joingame/${gameId}`, {}, { headers });
+                if (response.status === 200) {
                     this.$router.push(`/game/${gameId}`);
                 }
-            } 
+            }
             catch (error) {
                 if (error.response && error.response.status === 400) {
                     // Afficher le message d'erreur provenant du serveur
                     toast(error.response.data.message, {
                         autoClose: 2000,
                     });
-                } 
+                }
                 else {
                     toast("Erreur serveur", {
                         autoClose: 2000,
@@ -288,7 +297,7 @@ h1 {
 .create-game {
     margin: 20px 0;
     display: flex;
-    justify-content: flex-start;
+    justify-content: flex;
     padding: 2em;
 }
 
@@ -303,19 +312,41 @@ h1 {
     cursor: pointer;
 }
 
+.create-game button:hover {
+    background-color: rgb(240, 106, 53, 0.8);
+    opacity: .8;
+}
+
 .sections {
     display: flex;
     justify-content: space-evenly;
     flex-wrap: wrap;
+    margin: auto;
     gap: 20px;
+}
+
+.admin-link {
+    margin: 0 30px;
+    display: flex;
+    justify-content: flex-start;
+}
+
+.admin-link a {
+    text-decoration: none;
+    background-color: black;
+    padding: 10px 20px;
+    border-radius: 5px;
+    color: white;
+    font-size: 20px;
+    font-weight: bold;
 }
 
 .sections .section-dash {
     width: 300px;
-    height: 200px;
+    height: 300px;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     align-items: center;
     background: rgba(255, 255, 255, 0.2);
     border-radius: 16px;
@@ -324,5 +355,114 @@ h1 {
     -webkit-backdrop-filter: blur(5px);
     border: 1px solid rgba(255, 255, 255, 0.3);
     padding: 1em;
+}
+
+.payment {
+    display: flex;
+    margin: 20px 0;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 0 0 0 2em;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.payment button {
+    background-color: rgb(240, 106, 53);
+    border: none;
+    border-radius: 5px;
+    padding: 10px 20px;
+    color: white;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.payment button:hover {
+    background-color: rgb(240, 106, 53);
+    opacity: 0.8;
+}
+
+.games-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: scroll;
+    padding-right: 10px;
+}
+
+.games-list::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.games-list::-webkit-scrollbar-track {
+    border-radius: 10px;
+    background-color: #F5F5F5;
+}
+
+.games-list::-webkit-scrollbar-thumb {
+    border-radius: 10px;
+    background-color: #F90;
+    background-image: -webkit-linear-gradient(45deg, rgba(255, 255, 255, .2) 25%, transparent 25%,
+            transparent 50%, rgba(255, 255, 255, .2) 50%,
+            rgba(255, 255, 255, .2) 75%, transparent 75%,
+            transparent)
+}
+
+.games-list::-webkit-scrollbar-thumb:hover {
+    background: #f7791f;
+}
+
+.game-listing {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 30px;
+}
+
+.game-listing p {
+    font-size: 18px;
+    font-weight: bold;
+    margin: 0;
+}
+
+.game-listing button {
+    background-color: rgb(240, 106, 53);
+    border: none;
+    border-radius: 5px;
+    padding: 10px 20px;
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.game-listing button:hover {
+    background-color: rgb(240, 106, 53);
+    opacity: 0.8;
+}
+
+.mygames-listing {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 30px;
+    background-color: white;
+    padding: 10px;
+    border-radius: 10px;
+    width: 100%;
+}
+
+.mygames-listing p {
+    font-size: 18px;
+    font-weight: bold;
+    margin: 0;
+}
+
+.mygames-listing a {
+    text-decoration: none;
+    color: orangered;
 }
 </style>

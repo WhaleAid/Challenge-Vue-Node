@@ -83,6 +83,14 @@ const create = async (req, res, next) => {
         return next(createError(400, 'game limit reached'))
     }
 
+    const gameStarted = await GameMg.findOne({
+        owner: userId,
+        status: 'started',
+    })
+    if (gameStarted) {
+        return next(createError(400, 'user already has a started game'))
+    }
+
     try {
         let discard = []
         const deck = await CardMg.find({})
@@ -188,113 +196,112 @@ const startGame = async (req, res, next) => {
     }
 }
 
-const getGamesInProgress = async(req,res,next) =>{
-    console.log("get games in progress endpoint");
+const getGamesInProgress = async (req, res, next) => {
+    console.log('get games in progress endpoint')
     try {
         const games = await GameMg.find({
             status: 'waiting',
             players: {
-                $nin: [new mongoose.Types.ObjectId(req.user._id)]
-            }
-        });
-        console.log("Games : ", games);
-        res.json({games: games || []});
+                $nin: req.user._id,
+            },
+        }).populate('owner')
+        console.log('Games : ', games)
+        res.json({ games: games || [] })
     } catch (err) {
-        console.error(err);
+        console.error(err)
         res.status(500).json({
             status: 'error',
-            message: "Une erreur s'est produite lors de la récupération des jeux",
-            details: err.message
-        });
+            message:
+                "Une erreur s'est produite lors de la récupération des jeux",
+            details: err.message,
+        })
     }
-    
 }
 
-const getMyGame = async(req,res)=>{
-    console.log("get my game status");
-    const ObjectId = mongoose.Types.ObjectId;
+const getMyGame = async (req, res) => {
+    console.log('get my game status')
+    const ObjectId = mongoose.Types.ObjectId
     try {
         const game = await GameMg.findOne({
-            status: 'started',
-            players: new ObjectId(req.user._id)
-        });
-        console.log("game : ", game);
+            status: ['started', 'waiting'],
+            players: new ObjectId(req.user._id),
+        })
+        console.log('game : ', game)
         if (game) {
             res.json({
-                game
-            });
+                game,
+            })
         } else {
             res.json({
-                message: "Aucune partie commencée trouvée pour cet utilisateur"
-            });
+                message: 'Aucune partie commencée trouvée pour cet utilisateur',
+            })
         }
     } catch (err) {
-        console.error(err);
+        console.error(err)
         res.status(500).json({
             status: 'error',
             message: "Une erreur s'est produite lors de la récupération du jeu",
-            details: err.message
-        });
+            details: err.message,
+        })
     }
 }
 
-const countUserWins = async(req,res)=>{
-    console.log("get user wins count");
+const countUserWins = async (req, res) => {
+    console.log('get user wins count')
     try {
-        const userId = new mongoose.Types.ObjectId(req.user._id);
+        const userId = new mongoose.Types.ObjectId(req.user._id)
 
         const result = await GameMg.aggregate([
             {
                 $match: {
-                    winner: userId
-                }
+                    winner: userId,
+                },
             },
             {
-                $count: "userWins"
-            }
-        ]);
+                $count: 'userWins',
+            },
+        ])
 
-        res.json(result[0] || {userWins: 0});
-
+        res.json(result[0] || { userWins: 0 })
     } catch (err) {
-        console.error(err);
+        console.error(err)
         res.status(500).json({
             status: 'error',
-            message: "Une erreur s'est produite lors du comptage des victoires de l'utilisateur",
-            details: err.message
-        });
+            message:
+                "Une erreur s'est produite lors du comptage des victoires de l'utilisateur",
+            details: err.message,
+        })
     }
 }
 
-const countUserPlayedGames = async(req,res)=>{
-    console.log("count user played games endpoints");
-    const userId = req.user._id;
-    
-    try {
-        const result = await UserMg.aggregate([
-            
-            { $match: { _id: new mongoose.Types.ObjectId(userId) } },
-            
-            { $unwind: "$games" },
-            
-            { $match: { "games.status": "ended" } },
-           
-            { $count: "userPlayedGames" }
-        ]);
+const countUserPlayedGames = async (req, res) => {
+    console.log('count user played games endpoints')
+    const userId = req.user._id
 
-        let count = 0;
-        if(result.length > 0){
-            count = result[0].userPlayedGames;
+    try {
+        const result = await GameMg.aggregate([
+            {
+                $match: {
+                    players: new mongoose.Types.ObjectId(req.user._id),
+                },
+            },
+            { $count: 'count' },
+        ])
+
+        let count = 0
+        if (result.length > 0) {
+            count = result[0].count
         }
 
-        res.json({ userPlayedGames: count });
+        res.json({ userPlayedGames: count })
     } catch (err) {
-        console.log(err);
+        console.log(err)
         res.status(500).json({
             status: 'error',
-            message: "Une erreur s'est produite lors de la récupération des jeux joués par l'utilisateur",
-            details: err.message
-        });
+            message:
+                "Une erreur s'est produite lors de la récupération des jeux joués par l'utilisateur",
+            details: err.message,
+        })
     }
 }
 
@@ -306,5 +313,5 @@ module.exports = {
     getGamesInProgress,
     getMyGame,
     countUserWins,
-    countUserPlayedGames
+    countUserPlayedGames,
 }

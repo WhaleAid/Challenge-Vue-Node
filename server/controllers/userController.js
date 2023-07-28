@@ -331,10 +331,10 @@ const updateMyStatus = async (req, res, next) => {
 const joinGame = async (req, res, next) => {
     const { gameId } = req.params
     const userId = req.user._id
-    try {
+    // try {
         const game = await GameMg.findById(gameId)
         if (!game) {
-            return next(createError(404))
+            return next(createError(404), 'game not found')
         }
         if (game.status === 'started') {
             return next(createError(400, 'game already started'))
@@ -356,10 +356,10 @@ const joinGame = async (req, res, next) => {
                 game: game,
             },
         })
-    } catch (error) {
-        console.log(error)
-        return next(createError(500))
-    }
+    // } catch (error) {
+    //     console.log(error)
+    //     return next(createError(500))
+    // }
 }
 
 const inactivePlayer = async (req, res, next) => {

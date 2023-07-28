@@ -1,31 +1,33 @@
 <template>
+    <NavBar />
+    <div>
+        <div v-if="loading">Loading...</div>
 
-  <div>
-    <div v-if="loading">Chargement...</div>
+        <div v-else class="form-container">
+            <h1>Update User</h1>
+            <form @submit.prevent="updateUser">
+                <label for="firstName">First Name:</label>
+                <input id="firstName" v-model="user.firstName" required />
+                <br>
+                <label for="lastName">Last Name:</label>
+                <input id="lastName" v-model="user.lastName" required />
+                <br>
+                <label for="email">Email:</label>
+                <input id="email" v-model="user.email" required />
+                <br>
+                <label for="role">Role:</label>
+                <select v-model="user.role">
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                </select>
+                <br>
+                <!-- You can add other fields here -->
 
-    <div v-else>
-        <NavBar/>
-        <h1>Update User</h1>
-        <form @submit.prevent="updateUser">
-        <label for="firstName">First Name:</label>
-        <input id="firstName" v-model="user.firstName" required />
-        <br>  
-        <label for="lastName">Last Name:</label>
-        <input id="lastName" v-model="user.lastName" required />
-        <br> 
-        <label for="email">Email:</label>
-        <input id="email" v-model="user.email" required />
-        <br> 
-        <label for="role">Role:</label>
-        <input id="role" v-model="user.role" required />
-        <br> 
-        <!-- Vous pouvez ajouter d'autres champs ici -->
+                <button type="submit">Update</button>
+            </form>
+        </div>
 
-        <button type="submit">Update</button>
-        </form>
     </div>
-    
-  </div>
 </template>
 
 <script>
@@ -34,7 +36,7 @@ import NavBar from './NavBar.vue';
 // import jwtDecode from 'jwt-decode';
 
 export default {
-    components : {
+    components: {
         NavBar
     },
     name: "UpdateUser",
@@ -80,5 +82,59 @@ export default {
 </script>
 
 <style scoped>
-  /* ajoutez votre style ici */
+body {
+    background: url('https://source.unsplash.com/random') no-repeat center center fixed;
+    -webkit-background-size: cover;
+    -moz-background-size: cover;
+    -o-background-size: cover;
+    background-size: cover;
+}
+
+.form-container {
+    width: 500px;
+    margin: auto;
+    margin-top: 30px;
+    background: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    padding: 20px;
+    margin-bottom: 60px;
+    color: black;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+}
+
+label {
+    margin: 10px 0;
+}
+
+input,
+button,
+select,
+option {
+    margin: 10px 0;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: black;
+    border-radius: 10px;
+}
+
+button {
+    background: rgba(255, 145, 0, 0.3);
+    cursor: pointer;
+    transition: 0.3s ease;
+    border-radius: 10px;
+}
+
+button:hover {
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+}
 </style>

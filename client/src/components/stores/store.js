@@ -28,6 +28,9 @@ export default createStore({
     },
     resetTime(state) {
       state.time = 60;
+      state.timer = setInterval(() => {
+        this.commit('decrementTime');
+      }, 1000);
       localStorage.setItem('time', state.time);
     },
   },

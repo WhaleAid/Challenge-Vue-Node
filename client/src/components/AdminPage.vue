@@ -1,8 +1,8 @@
 <template>
     <div>
-        <h1>Page Admin !</h1>
-        <button @click="createUser">Créer un nouvel utilisateur</button>
-        <div v-if="loading">Chargement...</div>
+        <h1>Admin Dashboard</h1>
+        <button class="add-user-btn" @click="createUser">Add new user</button>
+        <div v-if="loading">Loading...</div>
         <table v-else>
             <thead>
                 <tr>
@@ -23,7 +23,7 @@
                     <td>{{ user.email }}</td>
                     <td>{{ user.role }}</td>
                     <td>
-                       <button @click="goToUpdatePage(user._id)">Update</button>
+                        <button @click="goToUpdatePage(user._id)">Update</button>
                     </td>
                     <td>
                         <button @click="deleteUser(user._id)">Delete</button>
@@ -89,5 +89,63 @@ export default {
 </script>
 
 <style scoped>
-  /* ajoutez votre style ici */
+body {
+    background: url('https://source.unsplash.com/random') no-repeat center center fixed;
+    -webkit-background-size: cover;
+    -moz-background-size: cover;
+    -o-background-size: cover;
+    background-size: cover;
+}
+
+.admin-container {
+    width: 90%;
+    margin: auto;
+    background: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    padding: 20px;
+    color: #fff;
+}
+
+h1 {
+    text-align: center;
+    padding: 20px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+thead {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+th,
+td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.add-user-btn {
+    margin-bottom: 20px;
+}
+
+button {
+    padding: 5px 10px;
+    border: none;
+    border-radius: 5px;
+    color: #fff;
+    background-color: rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    transition: 0.3s ease;
+}
+
+button:hover {
+    background-color: rgba(0, 0, 0, 0.5);
+}
 </style>
