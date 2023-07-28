@@ -6,7 +6,7 @@
             Utilisateur : {{status}}
         </div>
 
-        <div v-if="status === 'base' && isAdmin==='false'">
+        <div v-if="status === 'base' && isAdmin===false">
             <button @click="goPremium">Passer premium</button>
         </div>
         
@@ -14,6 +14,39 @@
             <router-link to="/admin">Section administrateur</router-link>
         </div>
 
+        <div style="border: 1px solid black">
+            <div v-if="myGame">
+                <div>ID de ma Game {{ myGame._id }}</div> 
+                <p>Ma partie en cours <router-link :to="`/game/${myGame._id}`">Aller à la partie</router-link> </p>
+            </div>
+
+            <div v-else>
+                {{ myGameMessage }}
+            </div>
+        </div>
+
+        <div style="border: 1px solid black">
+            <h2>Toutes les parties en cours</h2>
+            <div v-if="gamesInProgress.length > 0">
+                <div v-for="(game, index) in gamesInProgress" :key="index">
+                    {{ game._id }} 
+                </div>
+            </div>
+            <div v-else>
+                {{ gamesInProgressMessage }}
+            </div>
+        </div>
+
+        <div style="border: 1px solid black">
+            <h2>Mes victoires</h2>
+            <p>Vous avez remporté {{ userWins }} partie(s).</p>
+        </div>
+        
+
+        <div style="border: 1px solid black">
+            <h2>Mes parties jouées</h2>
+            <p>Vous avez joué à {{ userPlayedGames }} partie(s).</p>
+        </div>
         <!-- <div v-if="isAuthenticated">
             <router-link to="/profile">Voir mon profil</router-link>
         </div> -->
@@ -26,6 +59,8 @@ import jwtDecode from 'jwt-decode';
 import NavBar from './NavBar.vue';
 import axios from 'axios';
 import {loadStripe} from '@stripe/stripe-js';
+import { toast } from 'vue3-toastify';
+import 'vue3-toastify/dist/index.css';
 
 export default {
     components : 
@@ -39,7 +74,13 @@ export default {
             firstName: '',
             lastName: '',
             date_of_birth: '',
-            status : ''
+            status : '',
+            myGame: null,
+            myGameMessage: '',
+            gamesInProgress: [],
+            gamesInProgressMessage: '',
+            userWins: 0,
+            userPlayedGames: 0
 
         }
     },
@@ -66,6 +107,10 @@ export default {
         console.error(error);
             alert('Erreur lors de la récupération des informations du profil');
         }
+        this.getMyGame();
+        this.getGamesInProgress();
+        this.getUserWins();
+        this.getUserPlayedGames();
     },
     methods : {
         async goPremium() {
@@ -91,6 +136,83 @@ export default {
             } catch (error) {
                 console.error(error);
                 alert('Erreur lors de l\'initialisation du paiement');
+            }
+        },
+        async getMyGame() {
+            try {
+                const headers = {
+                    'Authorization': 'Bearer ' + localStorage.getItem('token')
+                };
+                const response = await axios.get(`${process.env.VUE_APP_API_URL}/api/v1/games/getMyGame`, {headers});
+                console.log(response);
+                if(response.data.game) {
+                    this.myGame = response.data.game;
+                    this.myGameMessage = "";
+                    console.log(response);
+                    // console.log(this.myGameMessage);
+                } else {
+                    this.myGameMessage = response.data.message;
+                }
+            } catch (error) {
+                console.error(error);
+                //alert('Erreur lors de la récupération de ma partie');
+                toast("Problème lors de la récupération de ma partie en cours..", {
+                autoClose: 2000,
+            });
+            }
+        },
+        async getGamesInProgress() {
+            try {
+                const headers = {
+                    'Authorization': 'Bearer ' + localStorage.getItem('token')
+                };
+                const response = await axios.get(`${process.env.VUE_APP_API_URL}/api/v1/games/getGamesInProgress`, {headers});
+               
+                if(response.data.games.length === [])
+                {
+                    this.gamesInProgress = response.data.games;
+                }
+                else
+                {   
+                    console.log("aucune game");
+                    this.gamesInProgressMessage = "Aucune Game en cours";
+                }
+            } catch (error) {
+                console.error(error);
+                //alert('Erreur lors de la récupération des parties en attente');
+                toast("Problème lors de la récupération des parties en cours..", {
+                    autoClose: 2000,
+                });
+            }
+        },
+        async getUserWins() {
+            try {
+                const headers = {
+                    'Authorization': 'Bearer ' + localStorage.getItem('token')
+                };
+                const response = await axios.get(`${process.env.VUE_APP_API_URL}/api/v1/games/countUserWins`, {headers});
+                this.userWins = response.data.userWins;
+            } catch (error) {
+                console.error(error);
+                //alert('Erreur lors de la récupération du nombre de victoires');
+                toast("Erreur lors de la récupération du nombre de victoires", {
+                    autoClose: 2000,
+                });
+            }
+        },
+           async getUserPlayedGames() {
+            try {
+                const headers = {
+                    'Authorization': 'Bearer ' + localStorage.getItem('token')
+                };
+                const response = await axios.get(`${process.env.VUE_APP_API_URL}/api/v1/games/countUserPlayedGames`, {headers});
+                this.userPlayedGames = response.data.userPlayedGames;
+            } catch (error) {
+                console.error(error);
+                //alert('Erreur lors de la récupération du nombre de parties jouées');
+                toast("Problème lors de la récupération du nombre total de parties jouées ..", {
+                    autoClose: 2000,
+                });
             }
         }
     }
