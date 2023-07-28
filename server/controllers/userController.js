@@ -287,17 +287,46 @@ const updateMe = async (req, res, next) => {
         }
         await user.save({ validateBeforeSave: false })
 
-        res.status(200).json({
-            status: 'success',
-            data: {
-                user: user,
-            },
-        })
-    } catch (error) {
-        console.log(error)
-        return next(createError(500))
+    res.status(200).json({
+      status: "success",
+      data: {
+        user: user,
+      },
+    });
+  } catch (error) {
+    console.log(error);
+    return next(createError(500));
+  }
+};
+
+
+const updateMyStatus = async (req, res, next) => {
+  console.log("updateStatus endpoint");
+  const userId = req.user._id;
+  const { status } = req.body;
+  try {
+    const user = await UserMg.findById(userId);
+    if (!user) {
+      return next(createError(404));
     }
-}
+
+    if (status) {
+      user.status = status;
+    }
+    
+    await user.save( { validateBeforeSave: false });
+
+    res.status(200).json({
+      status: "success",
+      data: {
+        user: user,
+      },
+    });
+  } catch (error) {
+    console.log(error);
+    return next(createError(500, 'error update me'));
+  }
+};
 
 const joinGame = async (req, res, next) => {
     const { gameId } = req.params
@@ -444,6 +473,7 @@ module.exports = {
     deleteMe,
     updateMe,
     joinGame,
+  updateMyStatus,
     getUserIndex,
     inactivePlayer,
 }

@@ -6,6 +6,36 @@ const gameController = require('../controllers/gameController');
 
 const router = express.Router();
 
+router  
+    .route("/getGamesInProgress")
+    .get(authController.protect, gameController.getGamesInProgress);
+
+router  
+    .route("/getMyGame")
+    .get(authController.protect, gameController.getMyGame)
+
+router  
+    .route("/countUserWins")
+    .get(authController.protect, gameController.countUserWins)
+
+router.route("/countUserPlayedGames")
+    .get(authController.protect, gameController.countUserPlayedGames)
+
+router
+    .route("/getGamesInProgress")
+    .get(authController.protect, gameController.getGamesInProgress);
+
+router
+    .route("/getMyGame")
+    .get(authController.protect, gameController.getMyGame)
+
+router
+    .route("/countUserWins")
+    .get(authController.protect, gameController.countUserWins)
+
+router.route("/countUserPlayedGames")
+    .get(authController.protect, gameController.countUserPlayedGames)
+
 router
 .route("/")
 .get(authController.protect,authController.restrictTo('admin'),gameController.getAll)
