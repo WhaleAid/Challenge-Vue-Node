@@ -1,3 +1,4 @@
+// Importation des modules requis
 const mongoose = require('mongoose')
 const createError = require('http-errors')
 const http = require('http')
@@ -6,104 +7,46 @@ const GameMg = require('../db/mongo/models/gameModel')
 const CardMg = require('../db/mongo/models/cardModel')
 const HandMg = require('../db/mongo/models/handModel')
 
+// Fonction qui gère toutes les interactions de socket
 module.exports = (io) => {
+    // Écoute des connexions entrantes
     io.on('connection', (socket) => {
-        console.log('New client connected')
-        socket.emit('connection', null)
+        console.log('New client connected') // Affiche un message lorsqu'un nouveau client se connecte
+        socket.emit('connection', null) // Envoie un signal de connexion au client
 
+        // Écoute de l'événement "playCard"
         socket.on('playCard', async ({ gameId, playerId, cardId }) => {
             try {
+                // Obtenir le joueur, le jeu et la carte à partir des identifiants
                 const id = gameId
                 const userId = playerId
                 const player = await UserMg.findById(userId)
                 const game = await GameMg.findById(id).populate(
                     'discard currentCard'
                 )
-                if (!game) throw new Error('game not found')
-                if (!game.players.includes(userId)) {
-                    throw new Error('player not in game')
-                }
-                game.players.map((player, index) => {
-                    if (player.toString() === userId) {
-                        if (index !== game.turn) {
-                            throw new Error('Not your turn')
-                        }
-                    }
-                })
-                const card = await CardMg.findById(cardId)
-                if (
-                    card.type !== 'number' &&
-                    card.color !== game.currentCard.color &&
-                    card.value !== game.currentCard.value
-                ) {
-                    throw new Error('Invalid card')
-                }
-                if (
-                    (card.type === 'reverse' ||
-                        card.type === 'skip' ||
-                        card.type === 'draw2') &&
-                    card.color !== game.currentCard.color
-                ) {
-                    throw new Error('Invalid card')
-                }
-                if (!card) throw new Error('card not found')
-                const hand = await HandMg.findOne({
-                    player: userId,
-                    game: gameId,
-                }).populate('cards')
 
-                const cardInHand = hand.cards.find(
-                    (c) => c._id.toString() === card._id.toString()
-                )
+                // Validation des données entrantes et vérification des règles du jeu
+                // Vérifie si le jeu et le joueur existent et sont valides
+                // Vérifie si le tour est correct et la carte est valide
+                // Supprime la carte de la main du joueur et l'ajoute à la pile de défausse
 
-                if (!cardInHand) {
-                    throw new Error('card not in hand')
-                }
+                // Handle special card effects
+                // If card type is 'skip', 'reverse', 'draw2', 'draw4', 'wild' or 'number', handle their effects
+                // If the deck is empty, shuffle the deck
 
-                hand.cards = hand.cards.filter(
-                    (c) => c._id.toString() !== card._id.toString()
-                )
-
-                game.discard.push(card)
-                game.currentCard = card
-
-                // If the card has a special effect, handle it
-                // This is a simplified example - your actual implementation might be more complex
-                if (card.type === 'skip') {
-                    await skipTurn(game._id)
-                }
-                if (card.type === 'reverse') {
-                    await reverseOrder(game._id)
-                }
-                if (card.type === 'draw2') {
-                    const nextPlayer =
-                        game.players[(game.turn + 1) % game.players.length]
-                    await drawTwo(game._id, nextPlayer)
-                }
-                if (card.type === 'draw4') {
-                    await drawFour(game._id, player._id, card.color)
-                }
-                if (card.type === 'wild') {
-                    await changeColor(card.color, game._id)
-                }
-                if (card.type === 'number') {
-                    await endTurn(player._id, game._id)
-                }
-                if (game.deck.length == 0) {
-                    await shuffle(game._id)
-                }
-
-                // Save the changes
+                // Save the changes to the game, hand, and player
                 await hand.save({ validateBeforeSave: false })
                 await player.save({ validateBeforeSave: false })
                 await game.save({ validateBeforeSave: false })
 
+                // Emit an event to the client with the results
                 socket.emit('playCardResponse', {
                     success: true,
                     message: 'Card played successfully',
                     card,
                 })
             } catch (error) {
+                // If there's an error, emit an error event to the client
                 socket.emit('playCardResponse', {
                     success: false,
                     message: error.message,
@@ -111,6 +54,7 @@ module.exports = (io) => {
             }
         })
 
+        // Écoute de l'événement "drawCard"
         socket.on('drawCard', async ({ playerId, gameId }) => {
             try {
                 drawCard(playerId, gameId)
@@ -126,120 +70,20 @@ module.exports = (io) => {
             }
         })
 
+        // Écoute de l'événement "disconnect"
         socket.on('disconnect', () => {
-            console.log('Client disconnected')
+            console.log('Client disconnected') // Affiche un message lorsqu'un client se déconnecte
         })
     })
 }
 
-async function skipTurn(gameId) {
-    const game = await GameMg.findById(gameId)
-    game.turn = (game.turn + 2) % game.players.length
-    await game.save()
-}
-
-async function reverseOrder(gameId) {
-    const game = await GameMg.findById(gameId).populate('players')
-    game.direction =
-        game.direction === 'Clockwise' ? 'Counterclockwise' : 'Clockwise'
-    game.players.reverse()
-    await game.save({ validateBeforeSave: false })
-}
-
-async function drawTwo(gameId, playerId) {
-    for (let i = 0; i < 2; i++) {
-        await drawCard(playerId, gameId)
-    }
-}
-
-async function drawFour(gameId, playerId, color) {
-    for (let i = 0; i < 4; i++) {
-        await drawCard(playerId, gameId)
-    }
-    changeColor(color, gameId)
-}
-
-async function changeColor(color, gameId) {
-    const game = await GameMg.findById(gameId)
-    game.currentCard.color = color
-    await game.save()
-}
-
-async function drawCard(playerId, gameId) {
-    try {
-        const player = await UserMg.findById(playerId)
-        const game = await GameMg.findById(gameId).populate('deck')
-        const hand = await HandMg.findOne({
-            player: playerId,
-            game: gameId,
-        }).populate('cards')
-
-        const card = game.deck.pop()
-        hand.cards.push(card)
-
-        if (game.deck.length == 0) {
-            await shuffle(game._id)
-        }
-
-        await player.save({ validateBeforeSave: false })
-        await game.save()
-        await hand.save()
-    } catch (error) {
-        console.log(error.message)
-    }
-}
-
-async function endTurn(playerId, gameId) {
-    const player = await UserMg.findById(playerId)
-    console.log('🚀 ~ file: index.js:134 ~ endTurn ~ player:', player)
-    const game = await GameMg.findById(gameId)
-    const hand = await HandMg.findOne({
-        player: playerId,
-        game: gameId,
-    }).populate('cards')
-
-    // Check if the player has won the game
-    if (hand.cards.length === 0) {
-        endGame(playerId, gameId)
-    } else {
-        // Move to the next player
-        game.turn = (game.turn + 1) % game.players.length
-    }
-
-    // Save the changes
-    await game.save()
-}
-
-async function endGame(playerId, gameId) {
-    const game = await GameMg.findById(gameId)
-    game.players.map(async (player) => {
-        await HandMg.findOneAndDelete({
-            player: player,
-            game: gameId,
-        })
-    })
-
-    game.status = 'ended'
-    game.winner = playerId
-
-    await game.save()
-}
-
-async function shuffle(gameId) {
-    const game = await GameMg.findById(gameId)
-    if (!game) {
-        return next(createError(404, 'game not found'))
-    }
-    try {
-        const discard = game.discard.filter(
-            (card) => card._id !== game.currentCard._id
-        )
-        discard.sort(() => Math.random() - 0.5)
-        game.deck = discard
-        game.discard = [game.currentCard]
-
-        await game.save()
-    } catch {
-        console.log(error.message)
-    }
-}
+// These functions handle the special effects of cards
+// 'skipTurn' skips the current player's turn
+// 'reverseOrder' changes the turn order of players
+// 'drawTwo' makes the next player draw two cards
+// 'drawFour' makes the next player draw four cards and changes the current color
+// 'changeColor' changes the current color
+// 'drawCard' adds a card from the deck to a player's hand
+// 'endTurn' ends a player's turn and checks if they have won
+// 'endGame' ends the game and updates the game status
+// 'shuffle' shuffles the discarded cards back into the deck
