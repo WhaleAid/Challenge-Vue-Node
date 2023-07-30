@@ -5,10 +5,12 @@ on:
     branches:
       - 'develop'
       - 'main'
+      - 'staging'
   pull_request:
     branches:
       - 'develop'
       - 'main'
+      - 'staging'
 
 jobs:
   tests:
@@ -23,6 +25,6 @@ jobs:
       - name : install dependecies
         run : npm i
       - name : Run Tests 
-        run : npm run test 
+        run : "npx jest" 
           
   
