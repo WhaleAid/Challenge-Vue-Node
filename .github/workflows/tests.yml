@@ -23,7 +23,9 @@ jobs:
         with : 
           node-version: 18
       - name : install dependecies
-        run : npm i
+        run: |
+          cd server
+          npm i
       - name : Run Tests 
         run : "npx jest" 
           
