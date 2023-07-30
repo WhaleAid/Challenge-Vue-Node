@@ -1,5 +1,6 @@
 const request = require('../../server/node_modules/supertest');
-const app = require('../../server/app'); 
+const app = require('./../../server/app'); 
+const jwt = require('../../server/node_modules/jsonwebtoken');
 
 require('../../server/node_modules/dotenv/lib/main').config({ path: `${__dirname}/../../server/config.env` });
 
@@ -7,25 +8,182 @@ require('../../server/node_modules/dotenv/lib/main').config({ path: `${__dirname
 const UserMg = require('../../server/db/mongo/models/userModel');
 const UserPg = require('../../server/db/postGres/models/userPostgresModel');
 const Email = require('../../server/utils/email');
+const authController = require('./../../server/controllers/authController');
+const userController = require('./../../server/controllers/userController');
+
+jest.mock('./../../server/controllers/authController', () => {
+  return {
+    ...jest.requireActual('./../../server/controllers/authController'), // garde les autres méthodes non mockées du contrôleur
+    protect: jest.fn((req, res, next) => {
+      next();
+    }),
+    restrictTo: jest.fn((role) => (req, res, next) => {
+      next();
+    }),
+  };
+});
 
 jest.mock('./../../server/db/mongo/models/userModel'); // Mock de UserMg
 jest.mock('./../../server/db/postGres/models/userPostgresModel'); // Mock de UserPg
 jest.mock('./../../server/utils/email'); // Mock du mailer
+jest.mock('./../../server/controllers/authController'); // Mock du mailer
 
-describe('Tests d\'intégration pour l\'endpoint "GET /users"', () => {
-  it('Devrait renvoyer une liste d\'utilisateurs avec un code d\'état 200', async () => {
-    //const response = await request(app).get('/users');
 
-    //expect(response.status).toBe(200);
+describe('GET /api/v1/users', () => {
+
+  it('Should return a 200 status code and an array of users (user authentified and has admin role) ', async () => {
+    const mockUsers = [
+      {
+        "firstName": "User",
+        "lastName": "One",
+        "email": "userone@gmail.com",
+        "role": "user"
+      },
+      {
+        "firstName": "User",
+        "lastName": "Two",
+        "email": "usertwo@gmail.com",
+        "role": "user"
+      }
+    ];
+
+    UserMg.find.mockResolvedValue(mockUsers);
+    UserPg.findAll.mockResolvedValue(mockUsers);
+
     
-    expect(true).toBe(true);
-    // Insérez ici des assertions supplémentaires pour vérifier le contenu de la réponse JSON si nécessaire
-    // Par exemple, vous pouvez vérifier le format de la réponse JSON
-    // expect(Array.isArray(response.body)).toBe(true);
-    // expect(response.body.length).toBeGreaterThan(0);
+
+    const response = await request(app).get(`/api/v1/users`);
+    
+    expect(response.status).toBe(200);
+    expect(Array.isArray(response.body.data.users)).toBeTruthy();
+    expect(response.body.data.users.length).toBe(mockUsers.length);
+    expect(response.body.data.users).toEqual(mockUsers);
   });
 });
 
+describe('GET /api/v1/users/:id', () => {
+
+  it('Should return a 200 status code and a user object (user authenticated and has admin role)', async () => {
+    const mockUser = {
+      _id: '60b69c8f9f1b1c001d7b5b92',
+      firstName: "User",
+      lastName: "One",
+      email: "userone@gmail.com",
+      role: "user"
+    };
+
+    const userId = mockUser._id;
+
+    UserMg.findById.mockResolvedValue(mockUser);
+
+    const response = await request(app).get(`/api/v1/users/${userId}`);
+    
+    expect(response.status).toBe(200);
+    expect(response.body.data.user).toEqual(mockUser);
+  });
+
+  it('Should return a 404 status code when a user is not found', async () => {
+    const nonExistentUserId = '60b69c8f9f1b1c001d7b5b93';
+
+    UserMg.findById.mockResolvedValue(null);
+
+    const response = await request(app).get(`/api/v1/users/${nonExistentUserId}`);
+    
+    expect(response.status).toBe(404);
+  });
+
+  it('Should return a 500 status code when a database error occurs', async () => {
+    const userIdCausingError = '60b69c8f9f1b1c001d7b5b94';
+
+    UserMg.findById.mockRejectedValue(new Error('Database error'));
+
+    const response = await request(app).get(`/api/v1/users/${userIdCausingError}`);
+    
+    expect(response.status).toBe(500);
+  });
+});
+
+
+describe('POST /api/v1/users', () => {
+
+  it('Should return a 201 status code and a user object when user data is valid', async () => {
+    const newUser = {
+      firstName: "User",
+      lastName: "One",
+      email: "userone@gmail.com",
+      password: "password",
+      passwordConfirm: "password",
+      date_of_birth: "1990-01-01",
+      role: "user"
+    };
+
+    UserMg.create.mockResolvedValue(newUser);
+    UserPg.create.mockResolvedValue(newUser);
+
+    const response = await request(app).post(`/api/v1/users`).send(newUser);
+    
+    expect(response.status).toBe(201);
+    expect(response.body.data.user).toEqual(newUser);
+  });
+
+  it('Should return a 400 status code when user data is invalid', async () => {
+    
+    const mockValidationError = new Error('ValidationError');
+      mockValidationError.name = 'ValidationError';
+      mockValidationError.errors = {
+        firstName: {
+          message: 'Please enter your firstName.',
+        },
+        lastName: {
+          message: 'Please enter your lastName.',
+        },
+        email: {
+          message: 'Please enter a valid email.',
+        },
+        password: {
+          message: 'The two passwords are different.',
+        },
+      };
+
+      UserMg.create.mockRejectedValue(mockValidationError);
+
+      const response = await request(app)
+        .post('/api/v1/users')
+        .send({
+          firstName: '',
+          lastName: '',
+          email: 'invalid email',
+          password: 'password1',
+          passwordConfirm: 'password2',
+          date_of_birth: '1990-01-01',
+          role: 'user',
+        });
+
+        console.log("response : ", response);
+    
+      expect(response.status).toBe(400);
+      //expect(response.body.message.errors).toEqual(mockValidationError.errors);
+  });
+
+  it('Should return a 500 status code when a database error occurs', async () => {
+    const newUserCausingError = {
+      firstName: "User",
+      lastName: "One",
+      email: "userone@gmail.com",
+      password: "password",
+      passwordConfirm: "password",
+      date_of_birth: "1990-01-01",
+      role: "user"
+    };
+
+    UserMg.create.mockRejectedValue(new Error('Database error'));
+    UserPg.create.mockRejectedValue(new Error('Database error'));
+
+    const response = await request(app).post(`/api/v1/users`).send(newUserCausingError);
+    
+    expect(response.status).toBe(500);
+  });
+});
 
 describe('Integration test for the endpoint "POST /signup"', () => {
   it('Should return a 201 status code, send a email to welcome the new user and return a valid jwt token', async () => {
@@ -45,12 +203,8 @@ describe('Integration test for the endpoint "POST /signup"', () => {
     const response = await request(app).post(`/api/v1/users/signup`).send(signupData);
 
     
-   // Vous pouvez accéder à la requête utilisée pour la réponse
+  
    const requestUsed = response.request;
-
-   console.log("request Method : ",requestUsed.method); // Affiche "POST"
-   console.log("URL accessed :", requestUsed.url); // Affiche "/signup"
-   console.log("req host : ", requestUsed.get('host')); // Affiche le corps de la requête envoyée
   
     
     expect(response.status).toBe(201);
