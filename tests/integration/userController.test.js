@@ -1,12 +1,12 @@
-const request = require('./../../server/node_modules/supertest');
-const app = require('./../../server/app'); 
+const request = require('../../server/node_modules/supertest');
+const app = require('../../server/app'); 
 
-require('./../../server/node_modules/dotenv').config({ path: `${__dirname}/../../server/config.env` });
+require('../../server/node_modules/dotenv/lib/main').config({ path: `${__dirname}/../../server/config.env` });
 
 
-const UserMg = require('./../../server/db/mongo/models/userModel');
-const UserPg = require('./../../server/db/postGres/models/userPostgresModel');
-const Email = require('./../../server/utils/email');
+const UserMg = require('../../server/db/mongo/models/userModel');
+const UserPg = require('../../server/db/postGres/models/userPostgresModel');
+const Email = require('../../server/utils/email');
 
 jest.mock('./../../server/db/mongo/models/userModel'); // Mock de UserMg
 jest.mock('./../../server/db/postGres/models/userPostgresModel'); // Mock de UserPg
