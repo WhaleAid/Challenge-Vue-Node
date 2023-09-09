@@ -1,5 +1,6 @@
 <template>
-    <div>
+    <NavBar />
+    <div class="admin-container">
         <h1>Admin Dashboard</h1>
         <button class="add-user-btn" @click="createUser">Add new user</button>
         <div v-if="loading">Loading...</div>
@@ -37,9 +38,13 @@
 <script>
 import axios from 'axios';
 import jwtDecode from 'jwt-decode';
+import NavBar from './NavBar.vue';
 
 export default {
     name: "AdminPage",
+    components: {
+        NavBar,
+    },
     data() {
         return {
             users: [],
@@ -99,7 +104,7 @@ body {
 
 .admin-container {
     width: 90%;
-    margin: auto;
+    margin: 3rem auto;
     background: rgba(255, 255, 255, 0.1);
     box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
     backdrop-filter: blur(4px);
@@ -107,7 +112,8 @@ body {
     border-radius: 10px;
     border: 1px solid rgba(255, 255, 255, 0.18);
     padding: 20px;
-    color: #fff;
+    color: white;
+    /* overflow: scroll; */
 }
 
 h1 {

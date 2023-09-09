@@ -1,5 +1,5 @@
 <template>
-  <div class="payment">
+  <div class="payment-page">
     <svg width="300px" height="300px" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
       <rect width="48" height="48" fill="white" fill-opacity="0.01" />
       <path
@@ -48,7 +48,7 @@ export default {
 }
 </script>
 <style>
-.payment {
+.payment-page {
   display: flex;
   flex-direction: column;
   align-items: center;

@@ -2,10 +2,10 @@
   <div>
     <NavBar />
     <div class="edit-container">
-      <div class="update-section" @click="() => {
-        return showProfil = !showProfil
-      }">
-        <div>
+      <div class="update-section">
+        <div @click="() => {
+          return showProfil = !showProfil
+        }">
           <h1>Update Profile</h1>
         </div>
         <form v-show="showProfil" @submit.prevent="updateProfile">
@@ -31,11 +31,11 @@
         </form>
       </div>
 
-      <div class="update-section" @click="() => {
+      <div class="update-section">
+        <!-- formulaire de mise à jour du mot de passe -->
+        <div @click="() => {
         return showPassword = !showPassword
       }">
-        <!-- formulaire de mise à jour du mot de passe -->
-        <div>
           <h1>Change Password</h1>
         </div>
         <form v-show="showPassword" @submit.prevent="updateProfile">
@@ -170,7 +170,8 @@ export default {
 .edit-container {
   height: 90vh;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  justify-content: flex-start;
   align-items: center;
 }
 
@@ -186,7 +187,7 @@ export default {
   -webkit-backdrop-filter: blur(5px);
   border: 1px solid rgba(255, 255, 255, 0.3);
   padding: 1em;
-  margin: auto;
+  margin: 1rem auto;
   cursor: pointer;
   transition: all 0.3s ease-in-out;
 }
@@ -237,6 +238,7 @@ button {
   cursor: pointer;
   transition: all 0.3s ease-in-out;
 }
+
 button:hover {
   background: rgba(247, 154, 4, 0.4);
   transition: all 0.3s ease-in-out;

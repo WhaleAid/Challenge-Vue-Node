@@ -37,10 +37,10 @@ export default {
 
 body {
   margin: 0;
-  height: 100vh;
+  /* height: 100vh;  */
   background-size: 200% 200%;
-  background-image: linear-gradient(45deg, #ff9a9e 0%, #fad0c4 50%, #ff9a9e 100%);
-  animation: gradient 10s ease infinite;
+  background-image: linear-gradient(45deg, #04641b 0%, #a5fbc3 100%);
+  animation: gradient 20s ease infinite;
 }
 
 #app {
@@ -48,7 +48,8 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
-  color: #2c3e50;
-  max-height: 100vh;
-  overflow: hidden;
+  color: white;
+  text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  /* max-height: 100vh; */
+  /* overflow: hidden; */
 }</style>

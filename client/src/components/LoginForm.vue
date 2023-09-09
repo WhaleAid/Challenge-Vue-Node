@@ -40,10 +40,8 @@ export default {
       try {
         const response = await axios.post(`${process.env.VUE_APP_API_URL}/api/v1/users/login`, this.user);
         if (response.status === 200) {
-          console.log(response.data);
           localStorage.setItem('token', response.data.token);
           localStorage.setItem('user', JSON.stringify(response.data.data.user));
-          console.log('Token stored:', localStorage.getItem('token'));
           this.$router.push('/home');
         }
       } catch (error) {

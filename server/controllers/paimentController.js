@@ -3,15 +3,15 @@ const createError = require("http-errors");
 
 
 exports.getCheckoutSession = async (req,res,next)=>{
-    
+    console.log(`${process.env.CLIENT_APP}/paiement-success`)
     try {
         console.log("checkout session function");
 
         // 2) Create chckout session 
         const session = await stripe.checkout.sessions.create({
             payment_method_types : ['card'],
-            success_url : `http://localhost:8080/paiement-success`,
-            cancel_url : `http://localhost:8080/profile`,
+            success_url : `${process.env.CLIENT_APP}/paiement-success`,
+            cancel_url : `${process.env.CLIENT_APP}/profile`,
             customer_email : req.user.email,
 
             // what was sent in the request so that we can get it back in the last step of workflow regarding paiments (see diagram)

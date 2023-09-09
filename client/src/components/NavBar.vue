@@ -61,9 +61,9 @@ nav .uno-logo p {
   background: linear-gradient(to bottom, yellow, white);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  -webkit-text-stroke-width: 1px;
-  -webkit-text-stroke-color: black;
-  text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.2);
+  -webkit-text-stroke-width: .2px;
+  -webkit-text-stroke-color: white;
+  text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.487);
   transform: rotate(-45deg);
   font-size: 16px;
   font-weight: bold;

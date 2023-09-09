@@ -18,6 +18,7 @@
 
 <script>
 import axios from 'axios';
+import { toast } from 'vue3-toastify';
 
 export default {
   data() {
@@ -42,8 +43,9 @@ export default {
         // La requête a réussi, rediriger l'utilisateur vers la page d'accueil
         if (response.status === 201) {
           localStorage.setItem('token', response.data.token);
-          console.log('Token stored:', localStorage.getItem('token'));
+          localStorage.setItem('user', JSON.stringify(response.data.data.user));
           this.$router.push('/home');
+          toast.success('Votre compte a été créé avec succès !');
         } else {
           // Gérer les autres codes de statut ici si nécessaire
           this.errorMessage = response.data.message;

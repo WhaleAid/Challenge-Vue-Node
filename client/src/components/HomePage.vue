@@ -1,7 +1,15 @@
 <template>
     <div>
         <NavBar />
-        <h1>Welcome {{ firstName }} {{ lastName }}</h1>
+        <h1>
+            Welcome {{ firstName }} {{ lastName }}
+            <span class="premium" v-if="status === 'premium'">
+                <font-awesome-icon icon="fa-solid fa-star" />
+            </span>
+            <div class="youre-premium">
+                <p>Vous êtes premium</p>
+            </div>
+        </h1>
         <div v-if="isAdmin === 'false'">
             Utilisateur : {{ status }}
         </div>
@@ -71,6 +79,7 @@ import jwtDecode from 'jwt-decode';
 import NavBar from './NavBar.vue';
 import axios from 'axios';
 import { loadStripe } from '@stripe/stripe-js';
+import io from 'socket.io-client';
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
 
@@ -98,6 +107,7 @@ export default {
     },
     async created() {
         let token = localStorage.getItem('token');
+        this.socket = io(process.env.VUE_APP_API_URL);
         if (token) {
             let decodedToken = jwtDecode(token);
             this.isAuthenticated = true;
@@ -110,6 +120,7 @@ export default {
         };
         try {
             const response = await axios.get(`${process.env.VUE_APP_API_URL}/api/v1/users/me`, { headers });
+            this.userId = response.data.data.user._id;
             this.firstName = response.data.data.user.firstName;
             this.lastName = response.data.data.user.lastName;
             this.date_of_birth = response.data.data.user.date_of_birth;
@@ -121,6 +132,26 @@ export default {
                 autoClose: 2000,
             });
         }
+        this.socket.on('createGameResponse', (response) => {
+            console.log('createGameResponse', response)
+            if (response.success) {
+                this.getGamesInProgress();
+            } else {
+                toast.error(response.message, {
+                    autoClose: 3000,
+                });
+            }
+        });
+        this.socket.on('joinGameResponse', (response) => {
+            console.log('joinGameResponse', response)
+            if (response.success) {
+                this.$router.push(`/game/${response.gameId}`);
+            } else {
+                toast.error(response.message, {
+                    autoClose: 3000,
+                });
+            }
+        });
         this.getMyGame();
         this.getGamesInProgress();
         this.getUserWins();
@@ -242,8 +273,11 @@ export default {
                 const response = await axios.post(`${process.env.VUE_APP_API_URL}/api/v1/games`, {}, { headers });
                 // Si la requête est réussie, redirigez vers la nouvelle page de jeu avec l'ID de la partie retourné par l'API
                 if (response.status === 200) {
-                    this.$router.push(`/game/${response.data.game._id}`);
+                    console.log(response);
+                    this.$router.push(`/game/${response.data._id}`);
+                    this.socket.emit('createGame')
                 }
+
                 else if (response.status === 400) {
                     toast("cannot create game", {
                         autoClose: 2000,
@@ -261,30 +295,34 @@ export default {
             }
         },
         async joinGame(gameId) {
-            try {
-                const headers = {
-                    'Authorization': 'Bearer ' + localStorage.getItem('token')
-                };
-                const response = await axios.patch(`${process.env.VUE_APP_API_URL}/api/v1/users/joingame/${gameId}`, {}, { headers });
-                if (response.status === 200) {
-                    this.$router.push(`/game/${gameId}`);
-                }
-            }
-            catch (error) {
-                if (error.response && error.response.status === 400) {
-                    // Afficher le message d'erreur provenant du serveur
-                    toast(error.response.data.message, {
-                        autoClose: 2000,
-                    });
-                }
-                else {
-                    toast("Erreur serveur", {
-                        autoClose: 2000,
-                    });
-                }
-                console.error(error);
-            }
-        },
+            console.log('usreid', this.userId)
+            this.socket.emit('joinGame', { gameId: gameId, playerId: this.userId });
+        }
+        // async joinGame(gameId) {
+        //     try {
+        //         const headers = {
+        //             'Authorization': 'Bearer ' + localStorage.getItem('token')
+        //         };
+        //         const response = await axios.patch(`${process.env.VUE_APP_API_URL}/api/v1/users/joingame/${gameId}`, {}, { headers });
+        //         if (response.status === 200) {
+        //             this.$router.push(`/game/${gameId}`);
+        //         }
+        //     }
+        //     catch (error) {
+        //         if (error.response && error.response.status === 400) {
+        //             // Afficher le message d'erreur provenant du serveur
+        //             toast(error.response.data.message, {
+        //                 autoClose: 2000,
+        //             });
+        //         }
+        //         else {
+        //             toast("Erreur serveur", {
+        //                 autoClose: 2000,
+        //             });
+        //         }
+        //         console.error(error);
+        //     }
+        // },
     }
 }
 </script>
@@ -292,6 +330,9 @@ export default {
 h1 {
     text-align: left;
     margin-left: 20px;
+    display: flex;
+    align-items: center;
+
 }
 
 .create-game {
@@ -302,7 +343,7 @@ h1 {
 }
 
 .create-game button {
-    background-color: rgb(240, 106, 53);
+    background-color: rgb(192, 10, 10);
     border: none;
     border-radius: 5px;
     padding: 10px 20px;
@@ -310,11 +351,41 @@ h1 {
     font-size: 20px;
     font-weight: bold;
     cursor: pointer;
+    transition: all .2s ease-in-out;
 }
 
 .create-game button:hover {
-    background-color: rgb(240, 106, 53, 0.8);
+    background-color: rgb(252, 9, 9);
     opacity: .8;
+    transition: all .2s ease-in-out;
+}
+
+.premium {
+    color: gold;
+    font-size: 20px;
+    margin-left: 10px;
+}
+
+.youre-premium {
+    display: none;
+    background-color: rgba(26, 25, 25, 0.498);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 5px;
+    padding: 0px 10px;
+    font-size: 14px;
+    margin: 0;
+    height: fit-content;
+    margin-left: 10px;
+}
+
+.youre-premium p {
+    margin: 5px 0;
+}
+
+.premium:hover + .youre-premium {
+    display: block;
 }
 
 .sections {
@@ -368,7 +439,7 @@ h1 {
 }
 
 .payment button {
-    background-color: rgb(240, 106, 53);
+    background-color: rgb(192, 10, 10);
     border: none;
     border-radius: 5px;
     padding: 10px 20px;
@@ -379,7 +450,7 @@ h1 {
 }
 
 .payment button:hover {
-    background-color: rgb(240, 106, 53);
+    background-color: rgb(252, 9, 9);
     opacity: 0.8;
 }
 
@@ -428,7 +499,7 @@ h1 {
 }
 
 .game-listing button {
-    background-color: rgb(240, 106, 53);
+    background-color: rgb(192, 10, 10);
     border: none;
     border-radius: 5px;
     padding: 10px 20px;
@@ -439,7 +510,7 @@ h1 {
 }
 
 .game-listing button:hover {
-    background-color: rgb(240, 106, 53);
+    background-color: rgb(252, 9, 9);
     opacity: 0.8;
 }
 
@@ -449,7 +520,8 @@ h1 {
     justify-content: center;
     align-items: center;
     gap: 30px;
-    background-color: white;
+    background-color: rgba(255, 255, 255, 0.285);
+    backdrop-filter: blur(5px);
     padding: 10px;
     border-radius: 10px;
     width: 100%;
