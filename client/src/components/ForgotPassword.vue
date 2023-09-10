@@ -74,7 +74,7 @@ body {
 }
 
 h1 {
-  color: black;
+  color: white;
 }
 
 input,
@@ -83,7 +83,7 @@ button {
   padding: 10px;
   background: rgba(255, 255, 255, 0.2);
   border: none;
-  color: black;
+  color: white;
   width: 100%;
 }
 

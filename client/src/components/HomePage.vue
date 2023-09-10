@@ -58,6 +58,8 @@
             <div class="section-dash">
                 <h2>Winnings</h2>
                 <p>You've won {{ userWins }} game(s).</p>
+                <p>Winning streak : {{ consecutiveWins }}</p> <img
+                    src="https://media.tenor.com/8McIGu0Tf_QAAAAi/fire-joypixels.gif" alt="fire" width="20px">
             </div>
 
 
@@ -96,13 +98,14 @@ export default {
             lastName: '',
             date_of_birth: '',
             status: '',
+            banned: false,
             myGame: null,
             myGameMessage: '',
             gamesInProgress: [],
             gamesInProgressMessage: '',
             userWins: 0,
-            userPlayedGames: 0
-
+            userPlayedGames: 0,
+            consecutiveWins: 0,
         }
     },
     async created() {
@@ -125,6 +128,22 @@ export default {
             this.lastName = response.data.data.user.lastName;
             this.date_of_birth = response.data.data.user.date_of_birth;
             this.status = response.data.data.user.status;
+            this.banned = response.data.data.user.banned;
+            this.consecutiveWins = response.data.data.user.consecutiveWins;
+            if (this.banned) {
+                try {
+                    const response = await axios.get(process.env.VUE_APP_API_URL + '/api/v1/users/logout');
+                    if (response.data.status === 'success') {
+                        // Remove JWT token from localStorage
+                        localStorage.removeItem('token');
+                        // Redirect to login page
+                        this.$router.push('/');
+                    }
+                } catch (error) {
+                    console.error('Error during logout:', error);
+                }
+            }
+            console.log(response.data.data.user)
             //console.log(response);
         } catch (error) {
             console.error(error);
@@ -384,7 +403,7 @@ h1 {
     margin: 5px 0;
 }
 
-.premium:hover + .youre-premium {
+.premium:hover+.youre-premium {
     display: block;
 }
 

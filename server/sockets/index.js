@@ -108,8 +108,10 @@ module.exports = (io) => {
 
                 // Save the changes
                 await hand.save({ validateBeforeSave: false })
-                await player.save({ validateBeforeSave: false })
                 await game.save({ validateBeforeSave: false })
+
+                player.cardsPlayed.push(card._id)
+                await player.save({ validateBeforeSave: false })
 
                 socket.emit('playCardResponse', {
                     success: true,
@@ -377,7 +379,6 @@ async function endTurn(playerId, gameId) {
         game: gameId,
     }).populate('cards')
 
-    console.log(hand.cards.length)
     // Check if the player has won the game
     if (hand.cards.length === 1) {
         endGame(playerId, gameId)
@@ -391,14 +392,26 @@ async function endTurn(playerId, gameId) {
 }
 
 async function endGame(playerId, gameId) {
+    console.log(playerId)
+    console.log('ended-game')
     const game = await GameMg.findById(gameId)
     game.status = 'ended'
     game.winner = playerId
+    await UserMg.findOneAndUpdate(
+        { _id: playerId },
+        { $inc: { consecutiveWins: 1 } }
+    )
     game.players.map(async (player) => {
         await HandMg.findOneAndDelete({
             player: player,
             game: gameId,
         })
+        if (player.toString() !== playerId.toString()) {
+            await UserMg.findOneAndUpdate(
+                { _id: player },
+                { $set: { consecutiveWins: 0 } }
+            )
+        }
     })
     await game.save()
     return true
@@ -441,6 +454,9 @@ async function leaveGame(playerId, gameId) {
         (game) => game._id.toString() !== gameId.toString()
     )
     user.warnings += 1
+    if (user.warnings >= 3) {
+        user.banned = true
+    }
 
     await HandMg.findOneAndDelete({
         player: playerId,

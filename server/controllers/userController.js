@@ -12,6 +12,7 @@ const GameMg = require('../db/mongo/models/gameModel')
 const GamePg = require('../db/postGres/models/gamePostgresModel')
 const CardMg = require('../db/mongo/models/cardModel')
 const CardPg = require('../db/postGres/models/cardPostgresModel')
+const { ObjectId } = require('mongodb')
 
 const getOne = async (req, res, next) => {
     const { id } = req.params
@@ -37,9 +38,8 @@ const getOne = async (req, res, next) => {
 }
 
 const getAll = async (req, res, next) => {
-    console.log('----------getAll users endpoint------------');
+    console.log('----------getAll users endpoint------------')
     try {
-    
         const users = await UserMg.find()
 
         res.status(200).json({
@@ -274,75 +274,74 @@ const updateMe = async (req, res, next) => {
         }
         await user.save({ validateBeforeSave: false })
 
-    res.status(200).json({
-      status: "success",
-      data: {
-        user: user,
-      },
-    });
-  } catch (error) {
-    console.log(error);
-    return next(createError(500));
-  }
-};
-
+        res.status(200).json({
+            status: 'success',
+            data: {
+                user: user,
+            },
+        })
+    } catch (error) {
+        console.log(error)
+        return next(createError(500))
+    }
+}
 
 const updateMyStatus = async (req, res, next) => {
-  console.log("updateStatus endpoint");
-  const userId = req.user._id;
-  const { status } = req.body;
-  try {
-    const user = await UserMg.findById(userId);
-    if (!user) {
-      return next(createError(404));
-    }
+    console.log('updateStatus endpoint')
+    const userId = req.user._id
+    const { status } = req.body
+    try {
+        const user = await UserMg.findById(userId)
+        if (!user) {
+            return next(createError(404))
+        }
 
-    if (status) {
-      user.status = status;
-    }
-    
-    await user.save( { validateBeforeSave: false });
+        if (status) {
+            user.status = status
+        }
 
-    res.status(200).json({
-      status: "success",
-      data: {
-        user: user,
-      },
-    });
-  } catch (error) {
-    console.log(error);
-    return next(createError(500, 'error update me'));
-  }
-};
+        await user.save({ validateBeforeSave: false })
+
+        res.status(200).json({
+            status: 'success',
+            data: {
+                user: user,
+            },
+        })
+    } catch (error) {
+        console.log(error)
+        return next(createError(500, 'error update me'))
+    }
+}
 
 const joinGame = async (req, res, next) => {
     const { gameId } = req.params
     const userId = req.user._id
     // try {
-        const game = await GameMg.findById(gameId)
-        if (!game) {
-            return next(createError(404), 'game not found')
-        }
-        if (game.status === 'started') {
-            return next(createError(400, 'game already started'))
-        }
-        if (game.status === 'ended') {
-            return next(createError(400, 'game already ended'))
-        }
-        if (game.players.includes(userId)) {
-            return next(createError(400, 'user already joined'))
-        }
-        if (game.players.length >= 4) {
-            return next(createError(400, 'game is full'))
-        }
-        game.players.push(userId)
-        await game.save()
-        res.status(200).json({
-            status: 'success',
-            data: {
-                game: game,
-            },
-        })
+    const game = await GameMg.findById(gameId)
+    if (!game) {
+        return next(createError(404), 'game not found')
+    }
+    if (game.status === 'started') {
+        return next(createError(400, 'game already started'))
+    }
+    if (game.status === 'ended') {
+        return next(createError(400, 'game already ended'))
+    }
+    if (game.players.includes(userId)) {
+        return next(createError(400, 'user already joined'))
+    }
+    if (game.players.length >= 4) {
+        return next(createError(400, 'game is full'))
+    }
+    game.players.push(userId)
+    await game.save()
+    res.status(200).json({
+        status: 'success',
+        data: {
+            game: game,
+        },
+    })
     // } catch (error) {
     //     console.log(error)
     //     return next(createError(500))
@@ -353,37 +352,37 @@ const inactivePlayer = async (req, res, next) => {
     const { gameId } = req.params
     const userId = req.user._id
     try {
-      const user = await UserMg.findById(userId)
-      if (!user) {
-        return next(createError(404))
-      }
+        const user = await UserMg.findById(userId)
+        if (!user) {
+            return next(createError(404))
+        }
 
-      const game = await GameMg.findById(gameId)
-      if (!game) {
-        return next(createError(404))
-      }
-      if (game.status !== 'started') {
-        return next(createError(400, 'game not started'))
-      }
-      if (!game.players.includes(userId)) {
-        return next(createError(400, 'user not in game'))
-      }
-      if (game.players[game.turn].toString() !== userId.toString()) {
-        return next(createError(400, 'not your turn'))
-      }
-      game.turn = (game.turn + 1) % game.players.length
-      await game.save()
-      res.status(200).json({
-        status: 'success',
-        data: {
-          game: game,
-        },
-      })
+        const game = await GameMg.findById(gameId)
+        if (!game) {
+            return next(createError(404))
+        }
+        if (game.status !== 'started') {
+            return next(createError(400, 'game not started'))
+        }
+        if (!game.players.includes(userId)) {
+            return next(createError(400, 'user not in game'))
+        }
+        if (game.players[game.turn].toString() !== userId.toString()) {
+            return next(createError(400, 'not your turn'))
+        }
+        game.turn = (game.turn + 1) % game.players.length
+        await game.save()
+        res.status(200).json({
+            status: 'success',
+            data: {
+                game: game,
+            },
+        })
     } catch (error) {
-      console.log(error)
-      return next(createError(500))
+        console.log(error)
+        return next(createError(500))
     }
-  }
+}
 
 const getUserIndex = async (req, res, next) => {
     const { gameId } = req.params
@@ -412,6 +411,16 @@ const getUserIndex = async (req, res, next) => {
         return next(createError(500))
     }
 }
+
+// const getMostUsedCard = async (req, res, next) => {
+//     const { id } = req.user
+//     try {
+//         const user = await UserMg.findById(id)
+//         if (!user) {
+//             return next(createError(404, 'user not found'))
+//         }
+
+// }
 
 // const makeMove = async (req, res, next) => {
 //   const { id } = req.params;
@@ -460,7 +469,7 @@ module.exports = {
     deleteMe,
     updateMe,
     joinGame,
-  updateMyStatus,
+    updateMyStatus,
     getUserIndex,
     inactivePlayer,
 }

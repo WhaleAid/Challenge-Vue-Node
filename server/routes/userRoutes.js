@@ -21,17 +21,17 @@ router
 router.route('/logout').get(authController.logout)
 
 router
-.route("/me")
-.get(authController.protect, userController.getMe)
-.patch(authController.protect, userController.updateMe)
-.delete(authController.protect, userController.deleteMe)
-.put(authController.protect, userController.updateMyStatus);
+    .route('/me')
+    .get(authController.protect, userController.getMe)
+    .patch(authController.protect, userController.updateMe)
+    .delete(authController.protect, userController.deleteMe)
+    .put(authController.protect, userController.updateMyStatus)
 
 router
     .route('/joingame/:gameId')
     .patch(authController.protect, userController.joinGame)
 
-    router
+router
     .route('/inactive/:id')
     .patch(authController.protect, userController.inactivePlayer)
 

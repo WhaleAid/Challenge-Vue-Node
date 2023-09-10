@@ -52,4 +52,8 @@ body {
   text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
   /* max-height: 100vh; */
   /* overflow: hidden; */
-}</style>
+}
+input::placeholder {
+  color: white;
+}
+</style>

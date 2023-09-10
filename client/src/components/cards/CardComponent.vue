@@ -153,6 +153,7 @@ export default {
     -webkit-text-stroke-color: black;
     text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.2);
     text-align: center;
+    justify-content: center;
     margin: 0;
     z-index: 5;
 }

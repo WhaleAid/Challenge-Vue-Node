@@ -119,6 +119,10 @@ exports.login = async(req,res,next)=>{
             return next(createError( 401,'Incorrect email'));
         }
 
+        if(user.banned){
+            return next(createError( 401,'You have been banned'));
+        }
+
         const isPasswordCorrect = await user.correctPassword(password, user.password);
 
         if (!isPasswordCorrect) {
@@ -276,7 +280,6 @@ exports.resetPassword =  async (req,res,next)=>{
     try {
         //steps 
         //1 find the user using the token 
-        console.log("url token : ",req.params.token);
         const hashedToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
         // console.log("hashed tken : ",hashedToken);
     
@@ -288,7 +291,6 @@ exports.resetPassword =  async (req,res,next)=>{
 
         //2 if token has not expired and there is a user then set the new password 
         // console.log(user.passwordResetExpires,(new Date(Date.now() - 2 * 60 * 60 * 1000)).toString());
-        console.log(user);
         if(!user)
         {
             return next(createError(404,'Token is invalid or has expired '));

@@ -202,7 +202,7 @@
             <Modal modalClass="modal-colors" title='Warning' mask v-model:visible="leaveVisible" offsetTop="25%" :okButton="{
             }">
                 <h2>
-                    Leaving the game before it's over will result is a warning, 3 warnings and you'll be banned
+                    Leaving the game before it's over will result in a warning, 3 warnings and you'll be banned
                 </h2>
                 <button @click="leaveGame">
                     Leave
