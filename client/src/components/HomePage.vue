@@ -1,29 +1,96 @@
 <template>
     <div>
         <NavBar />
-        <h1>
-            Welcome {{ firstName }} {{ lastName }}
-            <span class="premium" v-if="status === 'premium'">
-                <font-awesome-icon icon="fa-solid fa-star" />
-            </span>
-            <div class="youre-premium">
-                <p>Vous êtes premium</p>
+        <div class="header-page-home">
+            <div class="left-side">
+                <h1>
+                    Welcome {{ firstName }} {{ lastName }}
+                    <span class="premium" v-if="status === 'premium'">
+                        <font-awesome-icon icon="fa-solid fa-star" />
+                    </span>
+                    <div class="youre-premium">
+                        <p>You are premium</p>
+                    </div>
+                </h1>
+                <div v-if="isAdmin === 'false'">
+                    User : {{ status }}
+                </div>
+
+                <div class="payment" v-if="status === 'base' && isAdmin === false">
+                    <button @click="goPremium">Go premium</button>
+                </div>
+
+                <div class="admin-link" v-if="isAdmin">
+                    <router-link to="/admin">Admin Section</router-link>
+                </div>
+
+                <div class="create-game">
+                    <button @click="createGame">Create game <font-awesome-icon icon="fa-solid fa-plus" /></button>
+                </div>
             </div>
-        </h1>
-        <div v-if="isAdmin === 'false'">
-            Utilisateur : {{ status }}
-        </div>
-
-        <div class="payment" v-if="status === 'base' && isAdmin === false">
-            <button @click="goPremium">Passer premium</button>
-        </div>
-
-        <div class="admin-link" v-if="isAdmin">
-            <router-link to="/admin">Section administrateur</router-link>
-        </div>
-
-        <div class="create-game">
-            <button @click="createGame">Créer une partie <font-awesome-icon icon="fa-solid fa-plus" /></button>
+            <div class="right-side">
+                <Flicking :options="{ align: 'next', circular: false, bound: true}" @move-end="onMoveEnd">
+                    <div v-if="this.topCards.length > 0" class="panel" :key="0">
+                        <h2>Top 3 used cards by all players</h2>
+                        <div class="top-cards">
+                            <div class="top-card" v-for="(card, index) in topCards" :key="index">
+                                <div class="card">
+                                    <CardComponent :color="card.card.color" :value="card.card.value"
+                                        :type="card.card.type" />
+                                </div>
+                                <p> X {{ card.count }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-if="myTopCard.data" class="panel" :key="1">
+                        <h2>Your most used card</h2>
+                        <div class="top-cards">
+                            <div class="top-card">
+                                <div class="card">
+                                    <CardComponent :color="myTopCard.data.card[0].mostPlayedCardDetails.color"
+                                        :value="myTopCard.data.card[0].mostPlayedCardDetails.value"
+                                        :type="myTopCard.data.card[0].mostPlayedCardDetails.type" />
+                                </div>
+                                <p> X {{ myTopCard.data.card[0].count }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-if="leaderBoard.data" class="panel" :key="2">
+                        <h2>Leaderboard</h2>
+                        <!-- table -->
+                        <table class="leaderboard-table">
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>Username</th>
+                                    <th>Wins</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="(user, index) in leaderBoard.data.users" :key="index">
+                                    <td>{{ index + 1 }}</td>
+                                    <td>{{ user.user.firstName }}</td>
+                                    <td>{{ user.totalWins }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div v-if="playtime.data" class="panel" :key="3">
+                        <h2>Playtime</h2>
+                        <p>{{ formatTime(playtime.data.playtime.playTime) }}</p>
+                    </div>
+                    <div class="section-dash panel" :key="4">
+                        <h2>Winnings</h2>
+                        <p>You've won {{ userWins }} game(s).</p>
+                        <p>Winning streak : {{ consecutiveWins }}</p> <img
+                            src="https://media.tenor.com/8McIGu0Tf_QAAAAi/fire-joypixels.gif" alt="fire" width="20px">
+                    </div>
+                    <div class="section-dash panel" :key="5">
+                        <h2>History</h2>
+                        <p>You've played {{ userPlayedGames }} game(s).</p>
+                    </div>
+                </Flicking>
+            </div>
         </div>
 
         <div class="sections">
@@ -54,20 +121,6 @@
                     {{ gamesInProgressMessage }}
                 </div>
             </div>
-
-            <div class="section-dash">
-                <h2>Winnings</h2>
-                <p>You've won {{ userWins }} game(s).</p>
-                <p>Winning streak : {{ consecutiveWins }}</p> <img
-                    src="https://media.tenor.com/8McIGu0Tf_QAAAAi/fire-joypixels.gif" alt="fire" width="20px">
-            </div>
-
-
-            <div class="section-dash">
-                <h2>History</h2>
-                <p>You've played {{ userPlayedGames }} game(s).</p>
-            </div>
-
         </div>
         <!-- <div v-if="isAuthenticated">
             <router-link to="/profile">Voir mon profil</router-link>
@@ -80,15 +133,19 @@
 import jwtDecode from 'jwt-decode';
 import NavBar from './NavBar.vue';
 import axios from 'axios';
+import CardComponent from './cards/CardComponent.vue';
 import { loadStripe } from '@stripe/stripe-js';
 import io from 'socket.io-client';
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
+import Flicking from "@egjs/vue3-flicking";
 
 export default {
     components:
     {
-        NavBar
+        NavBar,
+        CardComponent,
+        Flicking: Flicking
     },
     data() {
         return {
@@ -106,6 +163,10 @@ export default {
             userWins: 0,
             userPlayedGames: 0,
             consecutiveWins: 0,
+            topCards: {},
+            myTopCard: {},
+            leaderBoard: {},
+            playtime: 0,
         }
     },
     async created() {
@@ -172,9 +233,13 @@ export default {
             }
         });
         this.getMyGame();
+        this.getMyMostUsedCard();
         this.getGamesInProgress();
         this.getUserWins();
         this.getUserPlayedGames();
+        this.getMostUsedCard();
+        this.getLeaderBoard()
+        this.getPlaytime()
     },
     methods: {
         truncateId(id) {
@@ -239,12 +304,12 @@ export default {
                 };
                 const response = await axios.get(`${process.env.VUE_APP_API_URL}/api/v1/games/getGamesInProgress`, { headers });
 
-                if (response.data.games.length !== []) {
+                if (response.data.games.length > 0) {
                     this.gamesInProgress = response.data.games;
                 }
                 else {
                     console.log("aucune game");
-                    this.gamesInProgressMessage = "Aucune Game en cours";
+                    this.gamesInProgressMessage = "No games in progress";
                 }
             } catch (error) {
                 console.error(error);
@@ -316,7 +381,59 @@ export default {
         async joinGame(gameId) {
             console.log('usreid', this.userId)
             this.socket.emit('joinGame', { gameId: gameId, playerId: this.userId });
-        }
+        },
+        async getMostUsedCard() {
+            try {
+                const headers = {
+                    'Authorization': 'Bearer ' + localStorage.getItem('token')
+                }
+                const response = await axios.get(`${process.env.VUE_APP_API_URL}/api/v1/cards/most-used`, { headers })
+                this.topCards = response.data
+            } catch (error) {
+                console.error(error)
+            }
+        },
+        async getPlaytime() {
+            try {
+                const headers = {
+                    'Authorization': 'Bearer ' + localStorage.getItem('token')
+                }
+                const response = await axios.get(`${process.env.VUE_APP_API_URL}/api/v1/users/playtime`, { headers })
+                this.playtime = response.data
+                console.log('playtime', this.playtime)
+            } catch (error) {
+                console.error(error)
+            }
+        },
+        async getLeaderBoard() {
+            try {
+                const headers = {
+                    'Authorization': 'Bearer ' + localStorage.getItem('token')
+                }
+                const response = await axios.get(`${process.env.VUE_APP_API_URL}/api/v1/users/leader-board`, { headers })
+                console.log('leaderboard', response.data)
+                this.leaderBoard = response.data
+            } catch (error) {
+                console.error(error)
+            }
+        },
+        async getMyMostUsedCard() {
+            try {
+                const headers = {
+                    'Authorization': 'Bearer ' + localStorage.getItem('token')
+                }
+                const response = await axios.get(`${process.env.VUE_APP_API_URL}/api/v1/users/my-most-used-card`, { headers })
+                console.log('topcard of mine', response.data)
+                this.myTopCard = response.data
+            } catch (error) {
+                console.error(error)
+            }
+        },
+        formatTime(ms) {
+            const hours = Math.floor(ms / 3600000);
+            const minutes = Math.floor((ms % 3600000) / 60000);
+            return `${hours}h ${minutes}m`;
+        },
         // async joinGame(gameId) {
         //     try {
         //         const headers = {
@@ -379,10 +496,62 @@ h1 {
     transition: all .2s ease-in-out;
 }
 
+.leaderboard-table {
+    width: 100%;
+}
+
 .premium {
     color: gold;
     font-size: 20px;
     margin-left: 10px;
+}
+
+.header-page-home {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin: 20px 0;
+    padding: 0 2em;
+}
+
+.top-cards {
+    height: 50px;
+    display: flex;
+}
+
+.panel {
+    height: 300px;
+    /* display: flex; */
+    min-width: 200px;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(35px);
+    margin: auto 1rem;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 1rem;
+
+}
+
+.top-card {
+    position: relative;
+    width: 150px;
+    height: 200px;
+    display: flex;
+    margin: auto;
+}
+
+.top-card p {
+    z-index: 2;
+    position: absolute;
+    bottom: 0;
+    left: 35%;
+    margin: 0;
+    padding: 0;
+    color: white;
+    font-weight: bold;
+
 }
 
 .youre-premium {
@@ -411,7 +580,7 @@ h1 {
     display: flex;
     justify-content: space-evenly;
     flex-wrap: wrap;
-    margin: auto;
+    margin: 2rem auto;
     gap: 20px;
 }
 
@@ -432,7 +601,7 @@ h1 {
 }
 
 .sections .section-dash {
-    width: 300px;
+    width: 40%;
     height: 300px;
     display: flex;
     flex-direction: column;
@@ -471,6 +640,10 @@ h1 {
 .payment button:hover {
     background-color: rgb(252, 9, 9);
     opacity: 0.8;
+}
+
+.right-side {
+    width: 70%;
 }
 
 .games-list {

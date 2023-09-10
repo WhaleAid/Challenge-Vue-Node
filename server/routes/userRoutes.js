@@ -28,6 +28,18 @@ router
     .put(authController.protect, userController.updateMyStatus)
 
 router
+    .route('/leader-board')
+    .get(authController.protect, userController.getLeaderBoard)
+
+router
+    .route('/playtime')
+    .get(authController.protect, userController.getPlaytime)
+
+router
+    .route('/my-most-used-card')
+    .get(authController.protect, userController.getMostUsedCard)
+
+router
     .route('/joingame/:gameId')
     .patch(authController.protect, userController.joinGame)
 

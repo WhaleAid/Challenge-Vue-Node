@@ -232,7 +232,7 @@ const getMyGame = async (req, res) => {
             })
         } else {
             res.json({
-                message: 'Aucune partie commencée trouvée pour cet utilisateur',
+                message: 'You are not in any game',
             })
         }
     } catch (err) {

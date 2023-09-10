@@ -412,15 +412,189 @@ const getUserIndex = async (req, res, next) => {
     }
 }
 
-// const getMostUsedCard = async (req, res, next) => {
-//     const { id } = req.user
-//     try {
-//         const user = await UserMg.findById(id)
-//         if (!user) {
-//             return next(createError(404, 'user not found'))
-//         }
+const getMostUsedCard = async (req, res, next) => {
+    const { id } = req.user
+    try {
+        const user = await UserMg.findById(id)
+        if (!user) {
+            return next(createError(404, 'user not found'))
+        }
+        const aggregateOptions = [
+            {
+                $unwind: '$cardsPlayed',
+            },
+            {
+                $group: {
+                    _id: {
+                        userId: id,
+                        cardId: '$cardsPlayed',
+                    },
+                    count: {
+                        $sum: 1,
+                    },
+                },
+            },
+            {
+                $sort: {
+                    count: -1,
+                },
+            },
+            {
+                $group: {
+                    _id: id,
+                    mostPlayedCard: {
+                        $first: '$_id.cardId',
+                    },
+                    count: {
+                        $first: '$count',
+                    },
+                },
+            },
+            {
+                $lookup: {
+                    from: 'cards', // Replace with your actual Card collection name
+                    localField: 'mostPlayedCard',
+                    foreignField: '_id',
+                    as: 'mostPlayedCardDetails',
+                },
+            },
+            {
+                $unwind: '$mostPlayedCardDetails',
+            },
+        ]
+        const card = await UserMg.aggregate(aggregateOptions)
+        res.status(200).json({
+            status: 'success',
+            data: {
+                card: card,
+            },
+        })
+    } catch (error) {
+        console.log(error)
+        return next(createError(500))
+    }
+}
 
-// }
+const getLeaderBoard = async (req, res, next) => {
+    try {
+        const aggregateOptions = [
+            {
+                $group:
+                    /**
+                     * _id: The id of the group.
+                     * fieldN: The first field name.
+                     */
+                    {
+                        _id: '$winner',
+                        totalWins: {
+                            $sum: 1,
+                        },
+                    },
+            },
+            {
+                $sort:
+                    /**
+                     * Provide any number of field/order pairs.
+                     */
+                    {
+                        totalWins: -1,
+                    },
+            },
+            {
+                $limit:
+                    /**
+                     * Provide the number of documents to limit.
+                     */
+                    10,
+            },
+            {
+                $lookup:
+                    /**
+                     * from: The target collection.
+                     * localField: The local join field.
+                     * foreignField: The target join field.
+                     * as: The name for the results.
+                     * pipeline: Optional pipeline to run on the foreign collection.
+                     * let: Optional variables to use in the pipeline field stages.
+                     */
+                    {
+                        from: 'users',
+                        localField: '_id',
+                        foreignField: '_id',
+                        as: 'user',
+                    },
+            },
+            {
+                $unwind:
+                    /**
+                     * path: Path to the array field.
+                     * includeArrayIndex: Optional name for index.
+                     * preserveNullAndEmptyArrays: Optional
+                     *   toggle to unwind null and empty values.
+                     */
+                    {
+                        path: '$user',
+                    },
+            },
+        ]
+        const users = await GameMg.aggregate(aggregateOptions)
+        res.status(200).json({
+            status: 'success',
+            data: {
+                users: users,
+            },
+        })
+    } catch (error) {
+        console.log(error)
+        return next(createError(500))
+    }
+}
+
+const getPlaytime = async (req, res, next) => {
+    try {
+        const aggregateOptions = [
+            {
+                $match:
+                    /**
+                     * query: The query in MQL.
+                     */
+                    {
+                        players: req.user._id,
+                    },
+            },
+            {
+                $addFields: {
+                    duration: {
+                        $subtract: ['$updatedAt', '$createdAt'],
+                    },
+                },
+            },
+            {
+                $group:
+                    /**
+                     * _id: The id of the group.
+                     * fieldN: The first field name.
+                     */
+                    {
+                        _id: null,
+                        playTime: {
+                            $sum: '$duration',
+                        },
+                    },
+            },
+        ]
+        const [playtime] = await GameMg.aggregate(aggregateOptions)
+        res.status(200).json({
+            status: 'success',
+            data: {
+                playtime: playtime,
+            },
+        })
+    } catch (error) {
+        console.log(error)
+        return next(createError(500))
+    }
+}
 
 // const makeMove = async (req, res, next) => {
 //   const { id } = req.params;
@@ -472,4 +646,7 @@ module.exports = {
     updateMyStatus,
     getUserIndex,
     inactivePlayer,
+    getMostUsedCard,
+    getLeaderBoard,
+    getPlaytime
 }
