@@ -239,6 +239,7 @@ export default {
         this.getUserPlayedGames();
         this.getMostUsedCard();
         this.getLeaderBoard()
+        this.getMyMostUsedCard()
         this.getPlaytime()
     },
     methods: {

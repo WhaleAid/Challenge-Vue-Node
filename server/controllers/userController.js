@@ -421,12 +421,17 @@ const getMostUsedCard = async (req, res, next) => {
         }
         const aggregateOptions = [
             {
+                $match: {
+                    _id: new ObjectId(id),
+                }
+            },
+            {
                 $unwind: '$cardsPlayed',
             },
             {
                 $group: {
                     _id: {
-                        userId: id,
+                        userId: "$_id",
                         cardId: '$cardsPlayed',
                     },
                     count: {
@@ -441,7 +446,7 @@ const getMostUsedCard = async (req, res, next) => {
             },
             {
                 $group: {
-                    _id: id,
+                    _id: "$_id.userId", // this will group back by the user's ID
                     mostPlayedCard: {
                         $first: '$_id.cardId',
                     },
@@ -462,6 +467,7 @@ const getMostUsedCard = async (req, res, next) => {
                 $unwind: '$mostPlayedCardDetails',
             },
         ]
+        
         const card = await UserMg.aggregate(aggregateOptions)
         res.status(200).json({
             status: 'success',
